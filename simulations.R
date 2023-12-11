@@ -2,8 +2,9 @@ library(huge)
 library(MASS)
 library(matrixcalc)
 
-set.seed(123)
+# set.seed(123) # COMMENT: ADD IT LATER (SEE OTHER COMMENTS)
 
+# COMMENT: adjacency does not depend on n; also it should be symmetric (you may only use upper triangle and generate lower based on upper)
 adj_gen <- function(prob,n,p){
   adjacency_matrix <- matrix(rbinom(n*p, size = 1, prob = prob), nrow = n, ncol = p)
   return(adjacency_matrix)
@@ -34,10 +35,14 @@ prec_from_adj <- function(A){
 }
 
 # function that generates input data from a given covariance matrix
+# test
+# n=200; p=100; sigma = diag(p); data_gen(n,p, sigma)
 data_gen <- function(n,p, sigma){
+  
   Y <- matrix(0,n,p)
   for (i in 1:n){
-    y <- mvrnorm(p,mu = numeric(p),Sigma = sigma )
+    # y <- mvrnorm(p,mu = numeric(p),Sigma = sigma )
+    y <- mvrnorm(1, mu = numeric(p), Sigma = sigma )
     Y[i,] <- y
   }
   return(Y)
@@ -93,23 +98,29 @@ recall = function (g, g.hat) {
 #function to calculate the sparsity of a matrix (note that when huge generator is used, use $sparsity)
 sparsity <- function(omega, strict = TRUE, threshold = 1e-15){
   # Calculate the total number of elements in the matrix
-  total_elements <- length(omega)
+  # total_elements <- length(omega)
+  total_elements <- sum(upper.tri(omega))
   
   # Calculate the number of zero elements in the matrix, or the number below a given threshold
   if (strict){
-  zero_elements <- sum(omega == 0)
+  # zero_elements <- sum(omega == 0)
+    nonzero_elements <- sum(omega[upper.tri(omega)] != 0)
   } else {
-  zero_elements <- sum(omega < threshold)
+  # zero_elements <- sum(omega < threshold)
+    nonzero_elements <- sum(omega[upper.tri(omega)] >= threshold)
   }
   
   # Calculate the sparsity as the proportion of zero elements
-  sparsity <- zero_elements / total_elements
+  # sparsity <- zero_elements / total_elements
+  sparsity <- nonzero_elements / total_elements
   
   return(sparsity)
 }
 
 #function to return a treated GGM example from HUGE
-GGM_gen <- function(n,p){
+# GGM_gen <- function(n,p){
+GGM_gen <- function(p){
+  n <- 200 # COMMENT: HERE WE GENERATE MATRIX INSTEAD OF DATA?
   ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free') 
   omega.true = ggm.sf$omega # The true precision matrix
   sigma.true = ggm.sf$sigma # The true covariance matrix
@@ -120,50 +131,60 @@ GGM_gen <- function(n,p){
   }
 
 # function that generates the inverse precision matrix based on the GM priors
-GM_gen <-function(n,p,list_hyper, list_init){
-  omega <- matrix(0,nrow = p, ncol = p)
+# GM_gen <-function(n,p,list_hyper, list_init){
+
+GM_gen <- function(p, rho){
+  # COMMENT: 
+  # call adj_gene where prob = rho
+  # call prec_from_adj
   
-  lambda <- list_hyper$lambda
   
-  a <- list_hyper$a
-  b <- list_hyper$b
-  
-  ar <- list_hyper$ar
-  br <-list_hyper$br
-  
-  v0 <- list_hyper$v0
-  v1 <- list_hyper$v1
-  
-  tau <- rgamma(1,a,b)
-  rho <- rbeta(1,ar,br)
-  
-  var1 <- v1^2/tau
-  var0 <- v0^2/tau
-  
-  for (i in 1:p){
-    omega[i,i] <- rexp(1,lambda/2)
-    for (j in 1:i-1){
-      if (rbinom(1, size =1, prob =  rho) == 1){
-        omega[i,j] <- rnorm(1,0,var1)
-        omega[j,i] <- omega[i,j]
-      } else {
-          omega[i,j] <- rnorm(1,0,var0)
-          omega[j,i] <- omega[i,j]
-      }
-    }
-  }
-  
-  min_eigen <- min(eigen(oemga, only.values = TRUE)$values)
-  if (min_eigen < 0) {
-    omega <- omega + (0.1 - min_eigen) * diag(p)
-  } else{
-    omega <- omega + 0.1 * diag(p)
-  }
-  
+
+  # COMMENT: PRIOR FOR INFERING PARS, NOT NEEDED IN SIMULATION
+  # omega <- matrix(0,nrow = p, ncol = p)
+  # lambda <- list_hyper$lambda
+  # 
+  # a <- list_hyper$a
+  # b <- list_hyper$b
+  # 
+  # ar <- list_hyper$ar
+  # br <-list_hyper$br
+  # 
+  # v0 <- list_hyper$v0
+  # v1 <- list_hyper$v1
+  # 
+  # tau <- rgamma(1,a,b)
+  # rho <- rbeta(1,ar,br)
+  # 
+  # var1 <- v1^2/tau
+  # var0 <- v0^2/tau
+  # 
+  # for (i in 1:p){
+  #   omega[i,i] <- rexp(1,lambda/2)
+  #   for (j in 1:i-1){
+  #     if (rbinom(1, size =1, prob =  rho) == 1){
+  #       omega[i,j] <- rnorm(1,0,var1)
+  #       omega[j,i] <- omega[i,j]
+  #     } else {
+  #         omega[i,j] <- rnorm(1,0,var0)
+  #         omega[j,i] <- omega[i,j]
+  #     }
+  #   }
+  # }
+  # 
+  # min_eigen <- min(eigen(oemga, only.values = TRUE)$values)
+  # if (min_eigen < 0) {
+  #   omega <- omega + (0.1 - min_eigen) * diag(p)
+  # } else{
+  #   omega <- omega + 0.1 * diag(p)
+  # }
+  # 
   
   sigma <- solve(omega)
   
-  return(list(Sigma = sigma, Omega = omega))
+  # return(list(Sigma = sigma, Omega = omega))
+  return(list(omega.true = omega, sigma.true = sigma)) # COMMENT: MAYBE SAME NAME AS GGM_gen, might make it easier to call in the future
+  
 }
 
 # function that generates the inverse precision matrix based on the EXTENDED GM priors
@@ -183,41 +204,50 @@ GM_gen <-function(n,p,list_hyper, list_init){
 #'                    t0 = 1)
 #'            
 
-GMx_gen <- function(n,p,list_hyper_x, X = c(1,2,3,4)){
+# GMx_gen <- function(n,p,list_hyper_x, X = c(1,2,3,4)){
+GMx_gen <- function(p, ZETA, BETA, X = c(1,2,3,4)){
   
+  # COMMENT: n not needed?
   if (!is.numeric(n) || !is.numeric(p)) {
     stop("Input arguments must be numeric.")
   }
   
-  a <- list_hyper_x$a
-  b <- list_hyper_x$br
+  # SAME COMMENT AS BEFORE
+  # a <- list_hyper_x$a
+  # b <- list_hyper_x$br
+  # 
+  # ar <- list_hyper_x$ar
+  # br <-list_hyper_x$br
+  # 
+  # v0 <- list_hyper_x$v0
+  # v1 <- list_hyper_x$v1
+  # 
+  # tau <- rgamma(1,a,b)
+  # 
+  # var1 <- v1^2/tau
+  # var0 <- v0^2/tau
+  # 
+  # asig <- list_hyper_x$asig
+  # bsig <- list_hyper_x$bsig
+  # 
+  # n0 <- list_hyper_x$n0
+  # t0 <- list_hyper_x$t0
+  # 
+  # zeta <- rnorm(1,mean = n0, sd = t0)
+  # 
+  # sig_neg2 <- rgamma(1, asig, bsig)
+  # sig <- sig_neg2^-0.5
   
-  ar <- list_hyper_x$ar
-  br <-list_hyper_x$br
   
-  v0 <- list_hyper_x$v0
-  v1 <- list_hyper_x$v1
-  
-  tau <- rgamma(1,a,b)
-
-  var1 <- v1^2/tau
-  var0 <- v0^2/tau
-
-  asig <- list_hyper_x$asig
-  bsig <- list_hyper_x$bsig
-  
-  n0 <- list_hyper_x$n0
-  t0 <- list_hyper_x$t0
-  
-  zeta <- rnorm(1,mean = n0, sd = t0)
-  
-  sig_neg2 <- rgamma(1, asig, bsig)
-  sig <- sig_neg2^-0.5
-  
-  BETA <- matrix(0, p, p)
-  for (element in length(BETA)){
-    BETA[element] <- rnorm(1,0,sig)
-  }
+  # COMMENT: USE THIS AS INPUT
+  # ANOTHER THOUGHT: might be useful to make beta a matrix of zeros
+  # and set one/two values to non-zero
+  # first check whether we are able to make this case work
+  # ALSO NOTE to generate a network we expect, you may need to try values for ZETA & BETA 
+  # BETA <- matrix(0, p, p)
+  # for (element in length(BETA)){
+  #   BETA[element] <- rnorm(1,0,sig)
+  # }
   
   RHO <- array(0 , dim = c(p,p,length(X)))
   for (k in 1:length(X)){
@@ -235,12 +265,17 @@ GMx_gen <- function(n,p,list_hyper_x, X = c(1,2,3,4)){
   DELTA <- array(0 , dim = c(p,p,length(X)))
   OMEGA <- array(0 , dim = c(p,p,length(X)))
   
+  # COMMENTS:
+  # MAKE SURE DELTA SYMMETRY
+  # CHECK WHETHER YOU ARE ABLE TO GENERATE THE NETWORKS WE EXPECT TO SEE? I WOULD EXPECT LOTS OF NOISES BY RBINOM
   for (k in 1:length(X)){
     for (i in 1:p){
       for (j in 1:i-1){
         DELTA[k,i,j] <- rbinom(1, size =1, prob = RHO[k,i,j]) 
       }
     }
+    
+    # COMMENT: ONCE GENERATE DELTA, CALL EXISTING FUNCTION prec_from_adj
     for (i in 1:p){
       OMEGA[k,i,i] <- rexp(1,lambda/2)
             for (j in 1:i-1){
@@ -284,6 +319,10 @@ GMx_gen <- function(n,p,list_hyper_x, X = c(1,2,3,4)){
 #}
 
 
+# COMMENT: POSSIBLE TO HAVE GGMx_gen?
+
+
+
 glasso_sim <- function(n = 100,p=200, omega.true){
   
   # Input Validation
@@ -315,6 +354,8 @@ GM_sim <- function(n = 100,p=200, omega.true){
     stop("Input arguments must be numeric.")
   }
   Y <- mvtnorm::rmvnorm(n, rep(0, p), solve(omega.true))
+  
+  # COMMENT: list_hyper, list_init AS FUNCION INPUT?
   omega.est.gm <- GM(Y, list_hyper, list_init)
   
   plot(result, layout = 'spring')
@@ -330,7 +371,8 @@ GM_sim <- function(n = 100,p=200, omega.true){
 
 file_example <- function(n,p,X,list_hyper,list_hyper_x){
   print('=== Example 1: GGM generation using HUGE ===')
-  ggm.sf <- GGM_gen(n,p)
+  # ggm.sf <- GGM_gen(n,p)
+  ggm.sf <- GGM_gen(p)
   omega.true <- ggm.sf$omega.true
   
   glasso_sim <- glasso_sim(n,p,omega.true)
@@ -352,6 +394,7 @@ file_example <- function(n,p,X,list_hyper,list_hyper_x){
   print('=== Recall ===')
   print(glasso_sim$recall)
   
+  # COMMENT: AGAIN I THINK TO MAKE THIS EXAMPLE TO WORK, YOU NEED TO PLAY WITH ZETA AND BETA AND CHECK THE GRAPHS GENERATED
   print('=== Example 3: GGM generation using GMx model ===')
   for (k in length(X)){
     cat("***Covariate = ",k,"***")
