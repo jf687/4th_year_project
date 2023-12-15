@@ -2,6 +2,8 @@ library(huge)
 library(MASS)
 library(matrixcalc)
 library(pROC)
+library(PRROC)
+library(ROCR)
 
 set.seed(123)
 
@@ -14,7 +16,7 @@ prec_from_adj <- function(A){
   E <- A
   nb_edges <- sum(E == 1)
   vec_magnitude <- c(-1,1)
-
+  
   E[A == 1] <- runif(nb_edges, min = vec_magnitude[1], max = vec_magnitude[2])
   
   E_bar <- (E + t(E)) / 2
@@ -100,9 +102,9 @@ sparsity <- function(omega, strict = TRUE, threshold = 1e-15){
   
   # Calculate the number of zero elements in the matrix, or the number below a given threshold
   if (strict){
-  zero_elements <- sum(omega == 0)
+    zero_elements <- sum(omega == 0)
   } else {
-  zero_elements <- sum(omega < threshold)
+    zero_elements <- sum(omega < threshold)
   }
   
   # Calculate the sparsity as the proportion of zero elements
@@ -115,11 +117,10 @@ sparsity <- function(omega, strict = TRUE, threshold = 1e-15){
 GGM_gen <- function(n,p){
   ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free') 
   omega.true = ggm.sf$omega # The true precision matrix
-  sigma.true = ggm.sf$sigma # The true covariance matrix
   #ggm.sf$sparsity # True sparsity
   omega.true[which(abs(omega.true)<1e-15)]=0 # IMPORTANT: ensure precision matrix has entries equal to exactly zero (huge gives some very small nonzero elements for some reason)
-  return(list(ggm.sf = ggm.sf, omega.true = omega.true, sigma.true = sigma.true))
-  }
+  return(list(ggm.sf = ggm.sf, omega.true = omega.true, sigma.true = ggm.sf$sigma, A = ggm.sf$theta))
+}
 
 # function that generates the inverse precision matrix based on the GM priors
 GM_gen <-function(n,p,list_hyper, list_init){
@@ -149,8 +150,8 @@ GM_gen <-function(n,p,list_hyper, list_init){
         omega[i,j] <- rnorm(1,0,var1)
         omega[j,i] <- omega[i,j]
       } else {
-          omega[i,j] <- rnorm(1,0,var0)
-          omega[j,i] <- omega[i,j]
+        omega[i,j] <- rnorm(1,0,var0)
+        omega[j,i] <- omega[i,j]
       }
     }
   }
@@ -201,10 +202,10 @@ GMx_gen <- function(n,p,list_hyper_x, X = list(1,2,3,4)){
   v1 <- list_hyper_x$v1
   
   tau <- rgamma(1,a,b)
-
+  
   var1 <- v1^2/tau
   var0 <- v0^2/tau
-
+  
   asig <- list_hyper_x$asig
   bsig <- list_hyper_x$bsig
   
@@ -220,10 +221,10 @@ GMx_gen <- function(n,p,list_hyper_x, X = list(1,2,3,4)){
   BETA <- matrix(0, p, p)
   for (i in 1:p){
     for (j in 1:p){
-    BETA[i,j] <- rnorm(1,0,sig)
+      BETA[i,j] <- rnorm(1,0,sig)
     }
   }
- 
+  
   
   RHO <- array(0 , dim = c(p,p,length(X)))
   for (k in 1:length(X)){
@@ -237,7 +238,7 @@ GMx_gen <- function(n,p,list_hyper_x, X = list(1,2,3,4)){
       }
     }
   }
-    
+  
   DELTA <- array(0 , dim = c(p,p,length(X)))
   OMEGA <- array(0 , dim = c(p,p,length(X)))
   
@@ -249,18 +250,18 @@ GMx_gen <- function(n,p,list_hyper_x, X = list(1,2,3,4)){
     }
     for (i in 1:p){
       if (i ==j){
-      OMEGA[i,i,k] <- rexp(1,lambda/2)
+        OMEGA[i,i,k] <- rexp(1,lambda/2)
       }
       else{
-            for (j in 1:i){
-              if (DELTA[i,j,k] == 1){
-                OMEGA[i,j,k] <- rnorm(1,0,var1)
-                OMEGA[j,i,k] <- OMEGA[i,j,k]
-              } else {
-                OMEGA[i,j,k] <- rnorm(1,0,var0)
-                OMEGA[j,i,k] <- OMEGA[i,j,k]
-              }
-            }
+        for (j in 1:i){
+          if (DELTA[i,j,k] == 1){
+            OMEGA[i,j,k] <- rnorm(1,0,var1)
+            OMEGA[j,i,k] <- OMEGA[i,j,k]
+          } else {
+            OMEGA[i,j,k] <- rnorm(1,0,var0)
+            OMEGA[j,i,k] <- OMEGA[i,j,k]
+          }
+        }
       }
     }
     
@@ -284,7 +285,7 @@ GMx_gen <- function(n,p,list_hyper_x, X = list(1,2,3,4)){
   for (k in length(X)){
     SIGMA[,,k] <- solve(OMEGA[,,k])
   }
-
+  
   return(list(Sigma = SIGMA, Omega = OMEGA))
 }
 
@@ -308,16 +309,17 @@ glasso_sim <- function(n = 100,p=200, omega.true){
   #running graphical Lasso
   result <- huge(Y, method = 'glasso')
   result= huge.select(result,criterion = 'stars',stars.thresh = 0.05)
-  omega.est.glasso <- result$icov[[1]]
-  omega.true <- matrix(omega.true, n , p)
+  omega.est.glasso <- result$opt.icov
+  omega.est.glasso[which(abs(omega.est.glasso)<1e-15)]=0
+  omega.true <- matrix(omega.true, p , p)
   #plotting results  
   plot(result, layout = 'spring')
-  
+  #browser()
   #returning the precision and recall values
   prec <- precision(omega.true!=0, omega.est.glasso!=0)
   rec <- recall(omega.true!=0, omega.est.glasso!=0)
   
-  return(list(result = result, precision = prec , recall = rec))
+  return(result) # = result, precision = prec , recall = rec))
 }
 
 GM_sim <- function(n = 100,p=200, omega.true){
@@ -331,64 +333,64 @@ GM_sim <- function(n = 100,p=200, omega.true){
   
   plot(result, layout = 'spring')
   
-  #returning the precision and recall values
-  prec <- precision(omega.true!=0, omega.est.glasso!=0)
-  rec <- recall(omega.true!=0, omega.est.glasso!=0)
+  # returning the precision and recall values
+  # prec <- precision(omega.true!=0, omega.est.glasso!=0)
+  # rec <- recall(omega.true!=0, omega.est.glasso!=0)
   
   
 }
 
-plot_pr <- function(labels, prediction){
+plot_pr <- function(labels, predictions){
   
   # Assuming 'predictions' are the predicted probabilities and 'labels' are the true labels (0 or 1)
-  roc_curve <- pROC::roc(labels, predictions)
-  pr_curve <- roc_curve %>% roc_curve(., "prec_threshold", thresholds = seq(0, 1, by = 0.01))
-  
+  roc_curve <- PRROC::roc.curve(labels, predictions,curve=TRUE)
+  pr_curve <- PRROC::pr.curve(labels, predictions,curve=TRUE)
   # Plot Precision-Recall curve
+  plot(roc_curve)
   plot(pr_curve, col = "blue", main = "Precision-Recall Curve", lwd = 2)
   
 }
 
 file_example <- function(n,p,X,list_hyper,list_hyper_x){
   if (FALSE){
-  print('=== Example 1: GGM generation using HUGE ===')
-  ggm.sf <- GGM_gen(n,p)
-  omega.true <- ggm.sf$omega.true
-  
-  glasso_sim <- glasso_sim(n,p,omega.true)
-  result <- glasso_sim$result
-  print('=== Precision ===')
-  print(glasso_sim$precision)
-  print('=== Recall ===')
-  print(glasso_sim$recall)
-  cat('Sparsity = ',sparsity(omega.true),'\n')
-  
-  print('=== Example 2: GGM generation using GM model ===')
-  gm <- GM_gen(n,p,list_hyper, list_init)
-  omega.true <- gm$Omega
-  
-  glasso_sim <- glasso_sim(n,p,omega.true)
-  result <- glasso_sim$result
-  print('=== Precision ===')
-  print(glasso_sim$precision)
-  print('=== Recall ===')
-  print(glasso_sim$recall)
-
-  print('=== Example 3: GGM generation using GMx model ===')
-  for (k in 1:length(X)){
-    cat("***Covariate = ",k,"***")
-    gm <- GMx_gen(n,p,list_hyper_x, list_init)
-    omega.true <- gm$Omega[,,k]
-    
+    print('=== Example 1: GGM generation using HUGE ===')
+    ggm.sf <- GGM_gen(n,p)
+    omega.true <- ggm.sf$omega.true
     
     glasso_sim <- glasso_sim(n,p,omega.true)
     result <- glasso_sim$result
-    
     print('=== Precision ===')
     print(glasso_sim$precision)
     print('=== Recall ===')
     print(glasso_sim$recall)
-  }
+    cat('Sparsity = ',sparsity(omega.true),'\n')
+    
+    print('=== Example 2: GGM generation using GM model ===')
+    gm <- GM_gen(n,p,list_hyper, list_init)
+    omega.true <- gm$Omega
+    
+    glasso_sim <- glasso_sim(n,p,omega.true)
+    result <- glasso_sim$result
+    print('=== Precision ===')
+    print(glasso_sim$precision)
+    print('=== Recall ===')
+    print(glasso_sim$recall)
+    
+    print('=== Example 3: GGM generation using GMx model ===')
+    for (k in 1:length(X)){
+      cat("***Covariate = ",k,"***")
+      gm <- GMx_gen(n,p,list_hyper_x, list_init)
+      omega.true <- gm$Omega[,,k]
+      
+      
+      glasso_sim <- glasso_sim(n,p,omega.true)
+      result <- glasso_sim$result
+      
+      print('=== Precision ===')
+      print(glasso_sim$precision)
+      print('=== Recall ===')
+      print(glasso_sim$recall)
+    }
   }
   print("### Example 4: GGM generation using 5% sparsity ###")
   A <- adj_gen(0.05,n,p)
@@ -404,32 +406,32 @@ file_example <- function(n,p,X,list_hyper,list_hyper_x){
 }
 
 n <- 50
-p <- 50
+p <- 100
 X <- list(1,2,3,4)
 
 list_hyper_x <- list(lambda = 2,
-                    v0 = 100,
-                    v1 = 0.5,
-                    a = 2,
-                    b = 2, 
-                    ar = 1,
-                    br = p, 
-                    asig = 1,
-                    bsig = 1,
-                    n0 = -2,
-                    t0 = 1)
-
-list_hyper <- list(lambda = 2,
                      v0 = 100,
                      v1 = 0.5,
                      a = 2,
                      b = 2, 
                      ar = 1,
-                     br = p)
+                     br = p, 
+                     asig = 1,
+                     bsig = 1,
+                     n0 = -2,
+                     t0 = 1)
+
+list_hyper <- list(lambda = 2,
+                   v0 = 100,
+                   v1 = 0.5,
+                   a = 2,
+                   b = 2, 
+                   ar = 1,
+                   br = p)
 
 
 
-file_example(n,p,X,list_hyper,list_hyper_x)
+#file_example(n,p,X,list_hyper,list_hyper_x)
 
 
 file_run_1 <- function(n,p,X,list_hyper,N){
@@ -441,16 +443,13 @@ file_run_1 <- function(n,p,X,list_hyper,N){
     omega.true <- ggm.sf$omega.true
     glasso_sim <- glasso_sim(n,p,omega.true)
     
-    result <- glasso_sim$result
-    
-    preds <- c(preds, result)
-    labels <- c(labels, omega.true)
+    result <- glasso_sim    #$result
+    preds <- c(preds, c(abs(result$opt.icov[upper.tri(result$opt.icov)])))
+    labels <- c(labels, (c(omega.true[upper.tri(omega.true)]) != 0) )
   }
-  plot_pr(preds,labels)
-
+  
+  plot_pr(labels = labels, predictions = preds)
+  
 }
-file_run_1(n,p,X,list_hyper,10)
 
-
-
-            
+file_run_1(n,p,X,list_hyper,1)
