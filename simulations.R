@@ -434,22 +434,31 @@ list_hyper <- list(lambda = 2,
 #file_example(n,p,X,list_hyper,list_hyper_x)
 
 
-file_run_1 <- function(n,p,X,list_hyper,N){
-  preds <- c()
-  labels <- c()
+file_run_1 <- function(n,p,X,list_hyper,N, seed=123){
+  set.seed(seed)
+  preds <- list()
+  labels <- list()
+  
   for (iteration in 1:N){
     
     ggm.sf <- GGM_gen(n,p)
     omega.true <- ggm.sf$omega.true
-    glasso_sim <- glasso_sim(n,p,omega.true)
+    result <- glasso_sim(n,p,omega.true)
+    preds[[iteration]] <- abs(result$opt.icov[upper.tri(result$opt.icov)])
+    labels[[iteration]] <- omega.true[upper.tri(omega.true)] != 0
     
-    result <- glasso_sim    #$result
-    preds <- c(preds, c(abs(result$opt.icov[upper.tri(result$opt.icov)])))
-    labels <- c(labels, (c(omega.true[upper.tri(omega.true)]) != 0) )
   }
   
-  plot_pr(labels = labels, predictions = preds)
+  # sparsity check
+  sum(preds[[iteration]] > 1e-5) / length(preds[[iteration]])
   
+  # plot_pr(labels = labels, predictions = preds)
+  plot_pr(labels = labels[[iteration]], predictions = preds[[iteration]])
+  
+  # check plot_pr
+  pred <- ROCR::prediction(preds, labels)
+  perf <- performance(pred, "tpr", "fpr")
+  plot(perf)
 }
 
-file_run_1(n,p,X,list_hyper,1)
+# file_run_1(n,p,X,list_hyper,1)
