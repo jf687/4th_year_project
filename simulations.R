@@ -340,16 +340,7 @@ GM_sim <- function(n = 100,p=200, omega.true){
   
 }
 
-plot_pr <- function(labels, predictions){
-  
-  # Assuming 'predictions' are the predicted probabilities and 'labels' are the true labels (0 or 1)
-  roc_curve <- PRROC::roc.curve(labels, predictions,curve=TRUE)
-  pr_curve <- PRROC::pr.curve(labels, predictions,curve=TRUE)
-  # Plot Precision-Recall curve
-  plot(roc_curve)
-  plot(pr_curve, col = "blue", main = "Precision-Recall Curve", lwd = 2)
-  
-}
+
 
 file_example <- function(n,p,X,list_hyper,list_hyper_x){
   if (FALSE){
@@ -429,9 +420,20 @@ list_hyper <- list(lambda = 2,
                    ar = 1,
                    br = p)
 
+binarise_mat <- function(mat, t){
+  for (index in 1:length(mat)){
+    if (abs(mat[index]) > t){
+      mat[index] <- 1
+    }else{
+      mat[index] <- 0
+    }
+  }
+  return(mat)
+}
 
 
-#file_example(n,p,X,list_hyper,list_hyper_x)
+
+
 
 
 file_run_1 <- function(n,p,X,list_hyper,N, seed=123){
@@ -461,4 +463,38 @@ file_run_1 <- function(n,p,X,list_hyper,N, seed=123){
   plot(perf)
 }
 
-# file_run_1(n,p,X,list_hyper,1)
+file_run_2 <- function(n,p,X,list_hyper,N, seed=123){
+  set.seed(seed)
+  preds <- list()
+  labels <- list()
+  
+  for (iteration in 1:N){
+    
+    ggm.sf <- GM_gen(n, p, list_hyper, list_init)
+    omega.true <- ggm.sf$Omega
+    result <- glasso_sim(n,p,omega.true)
+    preds[[iteration]] <- abs(result$opt.icov[upper.tri(result$opt.icov)])
+    labels[[iteration]] <- omega.true[upper.tri(omega.true)] != 0
+    
+  }
+  
+  # sparsity check
+  sum(preds[[iteration]] > 1e-5) / length(preds[[iteration]])
+  
+  # plot_pr(labels = labels, predictions = preds)
+  plot_pr(labels = labels[[iteration]], predictions = preds[[iteration]])
+  
+  # check plot_pr
+  pred <- ROCR::prediction(preds, labels)
+  perf <- performance(pred, "tpr", "fpr")
+  plot(perf)
+}
+
+file_run_3 <- function(){
+  ROC_data <- form_ROC(nvec = 1, p,n, list_hyper, list_init, plot = FALSE, t = 0.5, x_lim = 0.02, y_lim = 0, title = 'hello', main_ = 'hello')
+  pred <- ROCR::prediction(ROC_data$predictions, ROC_data$labels)
+  perf <- performance(pred, "tpr", "fpr")
+  plot(perf)
+}
+
+#file_run_3()
