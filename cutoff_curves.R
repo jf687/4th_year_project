@@ -1,0 +1,276 @@
+## Code for generating cut-off ROC and precision-recall curves
+
+library(huge)
+library(ggplot2)
+library(flux)
+source('simulations.R')
+
+# Some functions we need ----------------------------------
+
+confusion.matrix = function (g, g.hat) {
+  # A matrix containing the number of true positives (TP), false positives (FP), true negatives (TN) and false negatives (FN).
+  if (mean(dim(g[, ]) == dim(g.hat[, ])) != 1) 
+    stop("matrices must have the same dimension")
+  if (mean((g[, ] + 0) %in% c(0, 1)) != 1 | mean((g.hat[, ] + 0) %in% c(0, 1)) != 1) 
+    stop("g and g.hat must be adjacency matrices with elements in {0,1}")
+  p = nrow(g[, ])
+  g = g[, ]
+  g.hat = g.hat[, ]
+  diag(g) = rep(0, p)
+  diag(g.hat[, ]) = rep(0, p)
+  tp = sum(g.hat[, ] == 1 & g[, ] == 1)/10
+  fp = sum(g.hat[, ] == 1 & g[, ] == 0)/10
+  tn = (sum(g.hat[, ] == 0 & g[, ] == 0) - p)/10
+  fn = sum(g.hat[, ] == 0 & g[, ] == 1)/10
+  return(matrix(10 * c(tp, fp, fn, tn), nrow = 2, byrow = T)/2)
+}
+
+precision = function (g, g.hat) {
+  # The proportion of predicted edges that are true
+  conf.mat = confusion.matrix(g, g.hat)
+  if (conf.mat[1, 1] == 0 & conf.mat[2, 1] == 0) {
+    return(1)
+  }
+  else if (conf.mat[1, 1] == 0 & conf.mat[1, 2] == 0) {
+    return(1)
+  }
+  else {
+    return(conf.mat[1, 1]/(conf.mat[1, 1] + conf.mat[1, 2]))
+  }
+}
+
+recall = function (g, g.hat) {
+  # The proportion of true edges that were identified by the estimated graph
+  conf.mat = confusion.matrix(g, g.hat)
+  if (conf.mat[1, 1] == 0 & conf.mat[2, 1] == 0) {
+    return(1)
+  }
+  else {
+    return(conf.mat[1, 1]/(conf.mat[1, 1] + conf.mat[2, 1]))
+  }
+}
+
+TPR = function(g, g.hat){
+  p <- nrow(g[, ])
+  g <- g[, ]!=0
+  g.hat <- g.hat[, ]!=0
+  diag(g) <- rep(0, p)
+  diag(g.hat[, ]) <- rep(0, p)
+  tp = sum(g.hat[, ] == 1 & g[, ] == 1)/2
+  pos = sum(g[, ] == 1)/2
+  return(tp/pos)
+}
+
+FPR = function(g, g.hat){
+  p <- nrow(g[, ])
+  g <- g[, ]!=0
+  g.hat <- g.hat[, ]!=0
+  diag(g) <- rep(0, p)
+  diag(g.hat[, ]) <- rep(0, p)
+  fp = sum(g.hat[, ] == 1 & g[, ] == 0)/2
+  neg = (sum(g[, ] == 0)-p)/2
+  return(fp/neg)
+}
+
+# Function for plotting ROC curves
+
+perform_ROC_simulation = function(omega.true, n, N=100, include.glasso=T, include.ssl=T, scale.data = T, list_hyper=NULL, list_init=NULL){
+  res=list()
+  p=nrow(omega.true)
+  sigma.true = solve(omega.true)
+  if(include.ssl){
+    n.ppi.thresh = 20 # Threshold the posterior inclusion probability to get different FDR (i.e. not thresholding matrix elements)
+    ppi.thresh = seq(0,1,n.ppi.thresh)
+    res$precisions.ssl = matrix(0,N,n.ppi.thresh)
+    res$recalls.ssl = matrix(0,N,n.ppi.thresh)
+    res$TPR.ssl = matrix(0,N,n.ppi.thresh)
+    res$FPR.ssl = matrix(0,N,n.ppi.thresh)
+  }
+  if(include.glasso){
+    n.lambda = 20 # Varying the penalty parameter to get different FDRs
+    res$precisions.glasso = matrix(0,N,n.lambda)
+    res$recalls.glasso = matrix(0,N,n.lambda)
+    res$TPR.glasso = matrix(0,N,n.lambda)
+    res$FPR.glasso = matrix(0,N,n.lambda)
+  }
+  for(i in 1:N){
+    y = mvtnorm::rmvnorm(n, rep(0, p), sigma.true)
+    if(scale.data){
+      y = scale(y)
+    }
+    if(include.glasso){
+      res.glasso = huge(y, method = 'glasso', nlambda=n.lambda, verbose = F)
+      res.glasso.omegas = res.glasso$icov # A list of precision matrices
+      res$precisions.glasso[i,] = unlist(lapply(res.glasso.omegas, FUN = function(s) precision(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$recalls.glasso[i,] = unlist(lapply(res.glasso.omegas, FUN = function(s) recall(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$TPR.glasso[i,] = unlist(lapply(res.glasso.omegas, FUN = function(s) TPR(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$FPR.glasso[i,] = unlist(lapply(res.glasso.omegas, FUN = function(s) FPR(abs(s)>1e-5, abs(omega.true)>1e-5)))
+    }
+    if(include.ssl){
+      # I could not find the GM function in your code  - please implement yourself. Threshold the inclusion probabilities. 
+      # Something like this (?):
+      # res.ssl = GM(y, list_hyper, list_init) # Must specify the hyper params as well
+      # res.ssl.omegas = lapply(ppi.thresh, FUN = function(s) res.ssl$PPI < s) # A list of prec.matrices. Also probably not how you get the PPI, fix this
+      res.ssl.omegas = NULL # For now, so code can run
+      res$precisions.ssl[i,] = unlist(lapply(res.ssl.omegas, FUN = function(s) precision(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$recalls.ssl[i,] = unlist(lapply(res.ssl.omegas, FUN = function(s) recall(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$TPR.ssl[i,] = unlist(lapply(res.ssl.omegas, FUN = function(s) TPR(abs(s)>1e-5, abs(omega.true)>1e-5)))
+      res$FPR.ssl[i,] = unlist(lapply(res.ssl.omegas, FUN = function(s) FPR(abs(s)>1e-5, abs(omega.true)>1e-5)))
+    }
+  }
+  # Average over all N simulations (i.e., find the average performance for each lambda/PPI)
+  # Glasso
+  if(include.glasso){
+    res$mean.precisions.glasso = colMeans(res$precisions.glasso)
+    res$mean.recalls.glasso = colMeans(res$recalls.glasso)
+    res$mean.TPR.glasso = colMeans(res$TPR.glasso)
+    res$mean.FPR.glasso = colMeans(res$FPR.glasso) 
+  }
+  # Spike-and-slab
+  if(include.ssl){
+    res$mean.precisions.ssl = colMeans(res$precisions.ssl)
+    res$mean.recalls.ssl = colMeans(res$recalls.ssl)
+    res$mean.TPR.ssl = colMeans(res$TPR.ssl)
+    res$mean.FPR.ssl = colMeans(res$FPR.ssl) 
+  }
+  return(res)
+}
+
+
+plot_ROC = function(sim.obj, include.glasso=T, include.ssl=F, cutoff=NULL){
+  include.both = include.glasso & include.ssl
+  if(include.glasso){
+    df.plot = data.frame(TPR=sim.obj$mean.TPR.glasso, FPR=sim.obj$mean.FPR.glasso)[-1,]
+  }
+  if(include.ssl){
+    if(include.both){
+      df.plot2 = data.frame(TPR=sim.obj$mean.TPR.ssl, FPR=sim.obj$mean.FPR.ssl)
+      df.plot=rbind(df.plot, df.plot2)
+      df.plot$method = c(rep('Glasso',length(sim.obj$mean.TPR.glasso)-1), rep('SSL',length(sim.obj$mean.TPR.ssl)))
+    }
+    else{
+      df.plot = data.frame(TPR=sim.obj$mean.TPR.ssl, FPR=sim.obj$mean.FPR.ssl) 
+    }
+  }
+  # If TPR = 1 is achieved, can extrapolate
+  if(! include.both & max(df.plot$TPR==1, na.rm=T)){
+    df.plot.extra = data.frame(TPR=1, FPR=1)
+    df.plot = rbind(df.plot, df.plot.extra)
+  }
+  if(include.both){
+    if(max(df.plot$TPR==1 & df.plot$method=='Glasso', na.rm=T)){
+      df.plot.extra = data.frame(TPR=1, FPR=1, method='Glasso')
+      df.plot = rbind(df.plot, df.plot.extra)
+    }
+    if(max(df.plot$TPR==1 & df.plot$method=='SSL', na.rm=T)){
+      df.plot.extra = data.frame(TPR=1, FPR=1, method='SSL')
+      df.plot = rbind(df.plot, df.plot.extra)
+    }
+  }
+  if(is.null(cutoff)){
+    cutoff=max(df.plot$FPR, na.rm=T)
+  }
+  if(include.both){
+    ggplot(df.plot, aes(x=FPR, y=TPR, colour=method))+geom_point()+geom_line()+theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
+  }
+  else{
+    ggplot(df.plot, aes(x=FPR, y=TPR))+geom_point(colour='red')+geom_line(colour='red')+theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
+  }
+}
+
+plot_PRC = function(sim.obj, include.glasso=T, include.ssl=F, cutoff=NULL){
+  # Plot precision-recall curve
+  include.both = include.glasso & include.ssl
+  if(include.glasso){
+    df.plot = data.frame(Precision=sim.obj$mean.precisions.glasso, Recall=sim.obj$mean.recalls.glasso)[-1,]
+  }
+  if(include.ssl){
+    if(include.both){
+      df.plot2 = data.frame(Precision=sim.obj$mean.precisions.ssl, Recall=sim.obj$mean.recalls.ssl)
+      df.plot=rbind(df.plot, df.plot2)
+      df.plot$method = c(rep('Glasso',length(sim.obj$mean.precisions.glasso)-1), rep('SSL',length(sim.obj$mean.precisions.ssl)))
+    }
+    else{
+      df.plot = data.frame(Precision=sim.obj$mean.precisions.ssl, Recall=sim.obj$mean.recall.ssl)
+    }
+  }
+  if(is.null(cutoff)){
+    cutoff=max(df.plot$Recall, na.rm=T)
+  }
+  if(include.both){
+    ggplot(df.plot, aes(x=Recall, y=Precision, colour=method))+geom_point()+geom_line()+theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
+  }
+  else{
+    ggplot(df.plot, aes(x=Recall, y=Precision))+geom_point(colour='red')+geom_line(colour='red')+theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
+  }
+}
+
+get_AUC = function(sim.obj, method='Glasso', cutoff=NULL){
+  # Adding the point (0,0)
+  if(method=='Glasso'){
+    x = c(0,sim.obj$mean.FPR.glasso[-1])
+    y = c(0,sim.obj$mean.TPR.glasso[-1])
+  }
+  else if(method=='SSL'){
+    x = c(0,sim.obj$mean.FPR.ssl)
+    y = c(0,sim.obj$mean.TPR.ssl)   
+  }
+  # Extrapolate if TPR = 1 is achieved
+  if(max(y)==1){
+    x = c(x,1)
+    y=c(y,1)
+  }
+  if(is.null(cutoff)){
+    cutoff=max(x)
+  }
+  res= list(AUC=flux::auc(x, y), cutoff=cutoff)
+  return(res)
+}
+
+get_PRC_AUC = function(sim.obj, method='Glasso', cutoff=NULL){
+  # Adding the point (0,0)
+  if(method=='Glasso'){
+    x = c(0,sim.obj$mean.recalls.glasso[-1])
+    y = c(0,sim.obj$mean.precisions.glasso[-1])
+  }
+  else if(method=='SSL'){
+    x = c(0,sim.obj$mean.recalls.ssl)
+    y = c(0,sim.obj$mean.precisions.ssl)   
+  }
+  if(is.null(cutoff)){
+    cutoff=max(x)
+  }
+  res= list(AUC=flux::auc(x, y), cutoff=cutoff)
+  return(res)
+}
+
+
+# Test the code, for only the graphical lasso ------------------------------------
+
+n=200
+p=100
+N=10
+ggm.sf = GGM_gen(n,p)
+omega.true = ggm.sf$omega.true
+res.sim = perform_ROC_simulation(omega.true, n, N, include.ssl=F)
+
+# Plot ROC curve
+plot_ROC(res.sim, include.ssl = F)
+plot_PRC(res.sim, include.ssl = F)
+
+# Get cut-off AUC
+get_AUC(res.sim, method='Glasso')
+get_PRC_AUC(res.sim, method='Glasso')
+
+
+
+
+
+
+
+
+
+
+
+
+
