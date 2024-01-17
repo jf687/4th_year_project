@@ -123,7 +123,7 @@ GGM_gen <- function(n,p){
 }
 
 # function that generates the inverse precision matrix based on the GM priors
-GM_gen <-function(n,p,list_hyper, list_init){
+GM_gen <-function(n,p,list_hyper, list_init, thresh = 0.02){
   omega <- matrix(0,nrow = p, ncol = p)
   
   lambda <- list_hyper$lambda
@@ -138,7 +138,7 @@ GM_gen <-function(n,p,list_hyper, list_init){
   v1 <- list_hyper$v1
   
   tau <- rgamma(1,a,b)
-  rho <- rbeta(1,ar,br)
+  rho <- thresh
   
   var1 <- v1^2/tau
   var0 <- v0^2/tau
@@ -497,4 +497,4 @@ file_run_3 <- function(){
   plot(perf)
 }
 
-#file_run_3()
+#file_run_1(n,p,X,list_hyper,N, seed=123)

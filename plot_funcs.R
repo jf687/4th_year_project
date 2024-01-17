@@ -1,4 +1,4 @@
-form_ROC_GGM <- function(nvec, p,n, plot = TRUE, t = 0.5, x_lim = 0.02, y_lim = 0, title = 'title', main_ = 'main'){
+form_ROC_GGM <- function(nvec, p,n, plot = TRUE, t = 1e-5, x_lim = 0.02, y_lim = 0, title = 'title'){
   predictions <- c()
   labels <- c()
   for (i in 1:nvec){
@@ -8,11 +8,11 @@ form_ROC_GGM <- function(nvec, p,n, plot = TRUE, t = 0.5, x_lim = 0.02, y_lim = 
     result <- glasso_sim(n,p,omega.true)
     #preds[[iteration]] <- abs(result$opt.icov[upper.tri(result$opt.icov)])
     #labels[[iteration]] <- omega.true[upper.tri(omega.true)] != 0
-    predictions <- c(predictions, result$opt.icov[upper.tri(result$opt.icov)])
-    labels <- c(labels, omega.true[upper.tri(omega.true)])
+    predictions <- c(predictions, abs(result$opt.icov[upper.tri(result$opt.icov)]))
+    labels <- c(labels, abs(omega.true[upper.tri(omega.true)]))
   }
-  
-  labels <- binarise_mat(labels, t)
+  labels = abs(labels) > 1e-5
+  #labels <- binarise_mat(labels, t)
   print(title)
   pred <- prediction(predictions, labels)
   auc_value <- performance(pred, "auc")@y.values[[1]]
@@ -27,16 +27,17 @@ form_ROC_GGM <- function(nvec, p,n, plot = TRUE, t = 0.5, x_lim = 0.02, y_lim = 
     #      dpi="auto")
     
     perf <- performance(pred, measure = "tpr", x.measure = "fpr")
-    plot(perf, main = main_, xlim = c(0, x_lim), ylim = c(y_lim, 1), lwd = 2, colorize = TRUE)
+    #x_lim <- perf@fp[-1]/ (perf@fp[-1] + perf@tn[-1])
+    plot(perf, main = 'TPR vs FPR', xlim = c(0, x_lim), ylim = c(y_lim, 1), lwd = 2, colorize = TRUE)
     abline(0,1,lty = 'dashed')
-    mtext(paste("Area Under Curve (AUC):",auc_value,'.  n = ',n, ', v0 = ',list_hyper$v0,', v1 = ',list_hyper$v1 ), side = 3, line = 0.5, cex = 0.8)
-    dev.off()
+    #labs(subtitle = paste("Area Under Curve (AUC):",auc_value)) #,'.  n = ',n, ', v0 = ',list_hyper$v0,', v1 = ',list_hyper$v1 ), side = 3, line = 0.5, cex = 0.8)
+    
     
     perf.2 <- ROCR::performance(pred, measure = "prec", x.measure = "rec")
-    plot(perf.2, main = main_, xlim = c(0, x_lim), ylim = c(y_lim, 1), lwd = 2, colorize = TRUE)
-    abline(0,1,lty = 'dashed')
-    mtext(paste("Area Under Curve (AUC):",auc_value,'.  n = ',n, ', v0 = ',list_hyper$v0,', v1 = ',list_hyper$v1 ), side = 3, line = 0.5, cex = 0.8)
-    dev.off()
+    plot(perf.2, main = 'Precision-Recall', lwd = 2, colorize = TRUE)
+    #mtext(paste("Area Under Curve (AUC):",auc_value)) #,'.  n = ',n, ', v0 = ',list_hyper$v0,', v1 = ',list_hyper$v1 ), side = 3, line = 0.5, cex = 0.8)
+    
+    plot_pr(labels, predictions)
   }
   
   return(list(predictions, labels, auc_value, perf, perf.2))
@@ -55,4 +56,4 @@ plot_pr <- function(labels, predictions){
   
 }
 
-form_ROC_GGM(nvec = 1, p = 100,n = 200, plot = TRUE, t = 0.5, x_lim = 1, y_lim = 0, title = 'title', main_ = 'main')
+dat <- form_ROC_GGM(nvec = 1, p = 100,n = 200, plot = TRUE, t = 1e-5, x_lim = 0.05, y_lim = 0, title = 'title')
