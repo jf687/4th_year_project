@@ -7,8 +7,8 @@ library(ROCR)
 
 set.seed(123)
 
-adj_gen <- function(prob,n,p){
-  adjacency_matrix <- matrix(rbinom(n*p, size = 1, prob = prob), nrow = n, ncol = p)
+adj_gen <- function(prob,p){
+  adjacency_matrix <- matrix(rbinom(p*p, size = 1, prob = prob), nrow = p, ncol = p)
   return(adjacency_matrix)
 }
 
@@ -147,10 +147,10 @@ GM_gen <-function(n,p,list_hyper, list_init, thresh = 0.02){
     omega[i,i] <- rexp(1,lambda/2)
     for (j in 1:i-1){
       if (rbinom(1, size =1, prob =  rho) == 1){
-        omega[i,j] <- rnorm(1,0,var1)
+        omega[i,j] <- rnorm(1,0,var0)
         omega[j,i] <- omega[i,j]
       } else {
-        omega[i,j] <- rnorm(1,0,var0)
+        omega[i,j] <- rnorm(1,0,var1)
         omega[j,i] <- omega[i,j]
       }
     }
