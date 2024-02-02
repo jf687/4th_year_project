@@ -123,19 +123,24 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
   
   
   if(include.ssl){
-    n.ppi.thresh = 20 # Threshold the posterior inclusion probability to get different FDR (i.e. not thresholding matrix elements)
-    ppi.thresh = seq(0,1,n.ppi.thresh)
+    n.ppi.thresh = 50 # Threshold the posterior inclusion probability to get different FDR (i.e. not thresholding matrix elements)
+    #ppi.thresh = seq(0,1,n.ppi.thresh)
     res$precisions.ssl = matrix(0,N,n.ppi.thresh)
     res$recalls.ssl = matrix(0,N,n.ppi.thresh)
     res$TPR.ssl = matrix(0,N,n.ppi.thresh)
     res$FPR.ssl = matrix(0,N,n.ppi.thresh)
     
-    pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = N)
+    pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = N*100)
     
+    thresh_lo <- 0
+    thresh_hi <- 1
     for(i in 1:N){
       pb$tick()
-      
       adj_mat <- adj_gen(0.02,p)
+      while(all(adj_mat ==0)){
+        print('¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬')
+        adj_mat <- adj_gen(0.02,p)
+      }
       new.omega.true <- prec_from_adj(adj_mat)
       new.sigma.true <- solve(new.omega.true)
       #new.omega.true <- GM$Omega
@@ -144,24 +149,25 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
         y = scale(y)
       }
       
+      
       res.ssl <- GM(y, list_hyper, list_init) # Must specify the hyper params as well
       res.ssl.omega <- res.ssl$Omega
       res.ssl.m_delta <- res.ssl$m_delta
-      #res.ssl.omegas[[x]] <- res.ssl.omega
       
-      #for(x in 1:n.ppi.thresh){
-        #res$precisions.ssl[i,x] <- precision(abs(res.ssl$m_delta)>(x/(15*n.ppi.thresh)), abs(new.omega.true)>(x/(15*n.ppi.thresh)))
-        #res$recalls.ssl[i,x] <- recall(abs(res.ssl.m_delta)>(x/(15*n.ppi.thresh)), abs(new.omega.true)>(x/(15*n.ppi.thresh)))
-        #res$TPR.ssl[i,x] <- TPR(abs(res.ssl$m_delta)>(x/(15*n.ppi.thresh)), abs(new.omega.true)>(x/(15*n.ppi.thresh)))
-        #res$FPR.ssl[i,x] <- FPR(abs(res.ssl$m_delta)>(x/(15*n.ppi.thresh)), abs(new.omega.true)>(x/(15*n.ppi.thresh)))
-      #}
+      thresh_lo <- min(res.ssl.m_delta[lower.tri(res.ssl.m_delta)])
+      thresh_hi <- max(res.ssl.m_delta[lower.tri(res.ssl.m_delta)])
       
-      for(x in 1:n.ppi.thresh){
-        res$precisions.ssl[i,x] <- precision(abs(res.ssl.omega)>(x/(10*n.ppi.thresh)), abs(new.omega.true)>(x/(10*n.ppi.thresh)))
-        res$recalls.ssl[i,x] <- recall(abs(res.ssl.omega)>(x/(10*n.ppi.thresh)), abs(new.omega.true)>(x/(10*n.ppi.thresh)))
-        res$TPR.ssl[i,x] <- TPR(abs(res.ssl.omega)>(x/(10*n.ppi.thresh)), abs(new.omega.true)>(x/(10*n.ppi.thresh)))
-        res$FPR.ssl[i,x] <- FPR(abs(res.ssl.omega)>(x/(10*n.ppi.thresh)), abs(new.omega.true)>(x/(10*n.ppi.thresh)))
+      
+      ppi.thresh = seq(thresh_lo, thresh_hi, length.out = n.ppi.thresh)
+      
+      for(x in length(ppi.thresh)){
+      
+        res$precisions.ssl[i,x] <- precision( abs( res.ssl.m_delta ) < ppi.thresh[x], abs( new.omega.true ) > 0)
+        res$recalls.ssl[i,x] <- recall( abs( res.ssl.m_delta ) < ppi.thresh[x], abs( new.omega.true ) >0)
+        res$TPR.ssl[i,x] <- TPR( abs( res.ssl.m_delta ) < ppi.thresh[x], abs( new.omega.true ) >0)
+        res$FPR.ssl[i,x] <- FPR( abs( res.ssl.m_delta ) < ppi.thresh[x], abs( new.omega.true )>0)
       }
+    #browser()
       
     }
     
@@ -174,10 +180,25 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
   
   }
   
+  bool_up <- upper.tri(res.ssl$m_delta)
+  pred <- prediction(res.ssl$m_delta[bool_up], adj_mat[bool_up] == 1)
+  browser()
+  #range(pred@cutoffs[[1]])
+  #quantile(pred@cutoffs[[1]])
+  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+  plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
+  
   return(res)
 }
 
-
+plotty_plot = function(res.ssl, new.omega.true){
+  bool_up <- upper.tri(res.ssl$m_delta)
+  pred <- prediction(res.ssl$m_delta[bool_up], new.omega.true[bool_up])
+  #range(pred@cutoffs[[1]])
+  #quantile(pred@cutoffs[[1]])
+  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+  plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
+}
 
 plot_ROC = function(sim.obj, include.glasso=T, include.ssl=T, cutoff=NULL){
   include.both = include.glasso & include.ssl

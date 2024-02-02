@@ -7,9 +7,9 @@ source('fun_utils.R')
 
 seed <- 123; 
 set.seed(seed)
-n <- 200
-p <- 100
-N <- 100
+n <- 20
+p <- 10
+N <- 20
 Y <- matrix(rnorm(n*p), nrow = n, ncol = p)
 list_hyper <- list(lambda = 2,                   
                    v0 = 100,                  
@@ -31,12 +31,12 @@ res.sim <- perform_ROC_simulation(omega.true, n, list_hyper, list_init, include.
 # Plot ROC curve
 cutoff <- get_AUC(res.sim, method = 'Glasso')
 cutoff <- cutoff$cutoff
-plot_ROC(res.sim, include.ssl = T)
-plot_PRC(res.sim, include.ssl = T)
+#plot_ROC(res.sim, include.ssl = T)
+#plot_PRC(res.sim, include.ssl = T)
 
 # Get cut-off AUC
-get_AUC(res.sim, method='Glasso')
-get_PRC_AUC(res.sim, method='Glasso')
+#get_AUC(res.sim, method='Glasso')
+#get_PRC_AUC(res.sim, method='Glasso')
 
 #get_AUC(res.sim, method='SSL')
 #get_PRC_AUC(res.sim, method='SSL')
