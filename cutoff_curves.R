@@ -182,7 +182,7 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
   
   bool_up <- upper.tri(res.ssl$m_delta)
   pred <- prediction(res.ssl$m_delta[bool_up], adj_mat[bool_up] == 1)
-  browser()
+  #browser()
   #range(pred@cutoffs[[1]])
   #quantile(pred@cutoffs[[1]])
   perf <- performance(pred, measure = "tpr", x.measure = "fpr")

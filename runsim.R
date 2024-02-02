@@ -7,9 +7,9 @@ source('fun_utils.R')
 
 seed <- 123; 
 set.seed(seed)
-n <- 20
-p <- 10
-N <- 20
+n <- 100
+p <- 50
+N <- 1
 Y <- matrix(rnorm(n*p), nrow = n, ncol = p)
 list_hyper <- list(lambda = 2,                   
                    v0 = 100,                  
