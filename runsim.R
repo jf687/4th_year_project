@@ -9,7 +9,7 @@ seed <- 123;
 set.seed(seed)
 n <- 100
 p <- 50
-N <- 1
+N <- 50
 Y <- matrix(rnorm(n*p), nrow = n, ncol = p)
 list_hyper <- list(lambda = 2,                   
                    v0 = 100,                  

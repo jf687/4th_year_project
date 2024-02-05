@@ -40,9 +40,12 @@ library(ROCR)
 hist(out$estimates$m_delta) 
 bool_up <- upper.tri(net$A)
 pred <- prediction(out$estimates$m_delta[bool_up], net$A[bool_up])
-range(pred@cutoffs[[1]])
-quantile(pred@cutoffs[[1]])
+#range(pred@cutoffs[[1]])
+#quantile(pred@cutoffs[[1]])
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
 
 # 
+abline(a= 0, b = 1)
 table(net$A[bool_up],out$estimates$m_delta[bool_up] > 0.5)
 

@@ -181,12 +181,17 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
   }
   
   bool_up <- upper.tri(res.ssl$m_delta)
-  pred <- prediction(res.ssl$m_delta[bool_up], adj_mat[bool_up] == 1)
+  pred <- prediction(res.ssl$m_delta[bool_up], adj_mat[bool_up])
   #browser()
   #range(pred@cutoffs[[1]])
   #quantile(pred@cutoffs[[1]])
-  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+  perf <- performance(pred, measure = "prec", x.measure = "rec")
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
+  perf <- performance(pred, measure = "fpr", x.measure = "tpr")
+  plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
+  abline(a= 0, b = 1, col = "gray80")
+  browser()
+  table(adj_mat[bool_up],res.ssl$m_delta[bool_up] > 0.5)
   
   return(res)
 }
@@ -196,7 +201,7 @@ plotty_plot = function(res.ssl, new.omega.true){
   pred <- prediction(res.ssl$m_delta[bool_up], new.omega.true[bool_up])
   #range(pred@cutoffs[[1]])
   #quantile(pred@cutoffs[[1]])
-  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+  perf <- performance(pred, measure = "prec", x.measure = "recall")
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
 }
 
