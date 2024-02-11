@@ -132,7 +132,7 @@ GM  <- function(Y,
     #
     it <- it + 1
     
-    if (verbose != 0 & it %% 5 == 0)
+    if (verbose != 0 & it %% 5 == 0 & F)
       cat(paste0("Iteration ", format(it), "... \n"))
     
     
@@ -152,7 +152,7 @@ GM  <- function(Y,
       #
       vb_it <- vb_it + 1
       
-      if (verbose != 0 & vb_it %% 5 == 0)
+      if (verbose != 0 & vb_it %% 5 == 0 & F)
         cat(paste0("VB iteration ", format(vb_it), "... \n"))
       
       if (!is.null(vec_c) && vb_it <= length(vec_c)) {
@@ -222,7 +222,7 @@ GM  <- function(Y,
           n_warning_vb <- n_warning_vb + 1
         }
         
-        if (verbose != 0 & vb_it %% 5 == 0)
+        if (verbose != 0 & vb_it %% 5 == 0 & F)
           cat(paste0(
             "Difference lb from previous iteration: ",
             format(lb_diff),
@@ -327,7 +327,7 @@ GM  <- function(Y,
       n_warning <- n_warning + 1
     }
     
-    if (verbose != 0 & it %% 5 == 0)
+    if (verbose != 0 & it %% 5 == 0 & F) ## note i have included F to turn this printing off
       cat(paste0(
         "Difference Q from previous iteration: ",
         format(Q_diff),

@@ -1,91 +1,20 @@
 ## Code for generating cut-off ROC and precision-recall curves
 
-library(huge)
-library(ggplot2)
-library(flux)
-library(progress)
+source('libraries.R')
 source('simulations.R')
-
-
-# Some functions we need ----------------------------------
-
-confusion.matrix = function (g, g.hat) {
-  # A matrix containing the number of true positives (TP), false positives (FP), true negatives (TN) and false negatives (FN).
-  if (mean(dim(g[, ]) == dim(g.hat[, ])) != 1) 
-    stop("matrices must have the same dimension")
-  if (mean((g[, ] + 0) %in% c(0, 1)) != 1 | mean((g.hat[, ] + 0) %in% c(0, 1)) != 1) 
-    stop("g and g.hat must be adjacency matrices with elements in {0,1}")
-  p = nrow(g[, ])
-  g = g[, ]
-  g.hat = g.hat[, ]
-  diag(g) = rep(0, p)
-  diag(g.hat[, ]) = rep(0, p)
-  tp = sum(g.hat[, ] == 1 & g[, ] == 1)/10
-  fp = sum(g.hat[, ] == 1 & g[, ] == 0)/10
-  tn = (sum(g.hat[, ] == 0 & g[, ] == 0) - p)/10
-  fn = sum(g.hat[, ] == 0 & g[, ] == 1)/10
-  return(matrix(10 * c(tp, fp, fn, tn), nrow = 2, byrow = T)/2)
-}
-
-precision = function (g, g.hat) {
-  # The proportion of predicted edges that are true
-  conf.mat = confusion.matrix(g, g.hat)
-  if (conf.mat[1, 1] == 0 & conf.mat[2, 1] == 0) {
-    return(1)
-  }
-  else if (conf.mat[1, 1] == 0 & conf.mat[1, 2] == 0) {
-    return(1)
-  }
-  else {
-    return(conf.mat[1, 1]/(conf.mat[1, 1] + conf.mat[1, 2]))
-  }
-}
-
-recall = function (g, g.hat) {
-  # The proportion of true edges that were identified by the estimated graph
-  conf.mat = confusion.matrix(g, g.hat)
-  if (conf.mat[1, 1] == 0 & conf.mat[2, 1] == 0) {
-    return(1)
-  }
-  else {
-    return(conf.mat[1, 1]/(conf.mat[1, 1] + conf.mat[2, 1]))
-  }
-}
-
-TPR = function(g, g.hat){
-  p <- nrow(g[, ])
-  g <- g[, ]!=0
-  g.hat <- g.hat[, ]!=0
-  diag(g) <- rep(0, p)
-  diag(g.hat[, ]) <- rep(0, p)
-  tp = sum(g.hat[, ] == 1 & g[, ] == 1)/2
-  pos = sum(g[, ] == 1)/2
-  return(tp/pos)
-}
-
-FPR = function(g, g.hat){
-  p <- nrow(g[, ])
-  g <- g[, ]!=0
-  g.hat <- g.hat[, ]!=0
-  diag(g) <- rep(0, p)
-  diag(g.hat[, ]) <- rep(0, p)
-  fp = sum(g.hat[, ] == 1 & g[, ] == 0)/2
-  neg = (sum(g[, ] == 0)-p)/2
-  return(fp/neg)
-}
+source('ROC_calcs.R')
 
 # Function for plotting ROC curves
-#
-#
-#
-#
-#
-#
-#
-#
-#
 
 perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, include.glasso=T, include.ssl=T, scale.data = T){
+  adj_mat <- adj_gen(0.02,p)
+  while(all(adj_mat ==0)){
+    print('¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬')
+    adj_mat <- adj_gen(0.02,p)
+  }
+  omega.true <- prec_from_adj(adj_mat,p)
+  sigma.true <- solve(omega.true)
+  
   res=list()
   p=nrow(omega.true)
   sigma.true = solve(omega.true)
@@ -187,22 +116,13 @@ perform_ROC_simulation = function(omega.true, n,list_hyper, list_init, N=100, in
   #quantile(pred@cutoffs[[1]])
   perf <- performance(pred, measure = "prec", x.measure = "rec")
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
-  perf <- performance(pred, measure = "fpr", x.measure = "tpr")
+  perf <- performance(pred, measure = "tpr", x.measure = "fpr")
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
   abline(a= 0, b = 1, col = "gray80")
-  browser()
   table(adj_mat[bool_up],res.ssl$m_delta[bool_up] > 0.5)
+
   
   return(res)
-}
-
-plotty_plot = function(res.ssl, new.omega.true){
-  bool_up <- upper.tri(res.ssl$m_delta)
-  pred <- prediction(res.ssl$m_delta[bool_up], new.omega.true[bool_up])
-  #range(pred@cutoffs[[1]])
-  #quantile(pred@cutoffs[[1]])
-  perf <- performance(pred, measure = "prec", x.measure = "recall")
-  plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
 }
 
 plot_ROC = function(sim.obj, include.glasso=T, include.ssl=T, cutoff=NULL){
@@ -287,12 +207,12 @@ get_AUC = function(sim.obj, method='Glasso', cutoff=NULL){
   # Extrapolate if TPR = 1 is achieved
   if(max(y)==1){
     x = c(x,1)
-    y=c(y,1)
+    y = c(y,1)
   }
   if(is.null(cutoff)){
     cutoff=max(x)
   }
-  res= list(AUC=flux::auc(x, y), cutoff=cutoff)
+  res= list(AUC=flux::auc(x, y), cutoff=cutoff, complete_AUC = 1-cutoff + flux::auc(x, y))
   return(res)
 }
 
