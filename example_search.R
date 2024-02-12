@@ -8,8 +8,8 @@ Y <- matrix(rnorm(N*P), nrow = N, ncol = P)
 
 # estimate a precision matrix based on Y 
 lambda <- 2
-v0_v <- s0_v <- seq(1e-2, 1, length.out = 16)
-v1 <- s1 <- 100
+v0_v <- seq(1e-2, 1, length.out = 16)
+v1 <- 100
 P <- ncol(V)
 
 #
@@ -17,8 +17,6 @@ list_hyper <- list(
   lambda = lambda,
   v0_v = v0_v,
   v1 = v1,
-  s0_v = s0_v, 
-  s1 = s1,
   a_tau = 2,
   b_tau = 2,
   a_rho = 1,
