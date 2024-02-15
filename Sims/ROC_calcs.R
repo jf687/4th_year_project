@@ -1,4 +1,10 @@
-
+GGM_gen <- function(n,p){
+  ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free') 
+  omega.true = ggm.sf$omega # The true precision matrix
+   # True sparsity
+  omega.true[which(abs(omega.true)<1e-15)]=0 # IMPORTANT: ensure precision matrix has entries equal to exactly zero (huge gives some very small nonzero elements for some reason)
+  return(list(ggm.sf = ggm.sf, omega.true = omega.true, sigma.true = ggm.sf$sigma, A = ggm.sf$theta, sparsity = ggm.sf$sparsity))
+}
 
 
 confusion.matrix = function (g, g.hat) {
