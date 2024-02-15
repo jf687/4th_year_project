@@ -10,7 +10,24 @@ Y <- matrix(rnorm(N*P), nrow = N, ncol = P)
 lambda <- 2
 v0_v <- s0_v <- seq(1e-2, 1, length.out = 16)
 v1 <- s1 <- 100
-P <- ncol(V)
+P <- ncol(Y)# NOT RUN {
+#generate data
+L = huge.generator(d = 20, graph="hub")
+out.mb = huge(L$data)
+out.ct = huge(L$data, method = "ct")
+out.glasso = huge(L$data, method = "glasso")
+
+#model selection using ric
+out.select = huge.select(out.mb)
+plot(out.select)
+
+#model selection using stars
+#out.select = huge.select(out.ct, criterion = "stars", stars.thresh = 0.05,rep.num=10)
+#plot(out.select)
+
+#model selection using ebic
+out.select = huge.select(out.glasso,criterion = "ebic")
+plot(out.select)
 
 #
 list_hyper <- list(
