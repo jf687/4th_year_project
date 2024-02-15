@@ -8,6 +8,7 @@ Y <- matrix(rnorm(N*P), nrow = N, ncol = P)
 
 # estimate a precision matrix based on Y 
 lambda <- 2
+<<<<<<< HEAD
 v0_v <- s0_v <- seq(1e-2, 1, length.out = 16)
 v1 <- s1 <- 100
 P <- ncol(Y)# NOT RUN {
@@ -28,14 +29,17 @@ plot(out.select)
 #model selection using ebic
 out.select = huge.select(out.glasso,criterion = "ebic")
 plot(out.select)
+=======
+v0_v <- seq(1e-2, 1, length.out = 16)
+v1 <- 100
+P <- ncol(V)
+>>>>>>> ab795f0b846821b23a836809263fc49ad232f80b
 
 #
 list_hyper <- list(
   lambda = lambda,
   v0_v = v0_v,
   v1 = v1,
-  s0_v = s0_v, 
-  s1 = s1,
   a_tau = 2,
   b_tau = 2,
   a_rho = 1,
