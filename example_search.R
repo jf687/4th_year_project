@@ -1,14 +1,12 @@
-if(!require(remotes)) install.packages("remotes")
-remotes::install_github("XiaoyueXI/navigm")
-library(navigm)
 
+source('libraries.R')
 seed <- 123; set.seed(seed)
 N <- 100; P <- 50;
 Y <- matrix(rnorm(N*P), nrow = N, ncol = P)
 
 # estimate a precision matrix based on Y 
 lambda <- 2
-<<<<<<< HEAD
+#<<<<<<< HEAD
 v0_v <- s0_v <- seq(1e-2, 1, length.out = 16)
 v1 <- s1 <- 100
 P <- ncol(Y)# NOT RUN {
@@ -23,18 +21,18 @@ out.select = huge.select(out.mb)
 plot(out.select)
 
 #model selection using stars
-#out.select = huge.select(out.ct, criterion = "stars", stars.thresh = 0.05,rep.num=10)
-#plot(out.select)
+out.select = huge.select(out.ct, criterion = "stars", stars.thresh = 0.05,rep.num=10)
+plot(out.select)
 
 #model selection using ebic
 out.select = huge.select(out.glasso,criterion = "ebic")
 plot(out.select)
-=======
+#=======
 v0_v <- seq(1e-2, 1, length.out = 16)
-v1 <- 100
-P <- ncol(V)
->>>>>>> ab795f0b846821b23a836809263fc49ad232f80b
-
+v1 <- 1000
+P <- ncol(Y)
+#>>>>>>> ab795f0b846821b23a836809263fc49ad232f80b
+0
 #
 list_hyper <- list(
   lambda = lambda,
@@ -61,4 +59,5 @@ res1 <- navigm(Y, method = 'GM',
                      tol = 1e-3,
                      maxit = 1e5)
 
-res1$estimates$m_delta
+#res1$estimates$m_delta
+plot(v0_v[2:16],res1$model_criterion$value[2:16], xlab = 'value of spike variance v0', ylab = 'AIC', type = 'l')
