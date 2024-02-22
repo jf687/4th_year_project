@@ -199,7 +199,7 @@ freq_run <- function(ns = list(50,100,200,400), ps = list(25,50,100,200,300,400,
   }
   print('Run complete')
   op <- list(n.list, p.list, auc.glasso.list, prec.glasso.list, rec.glasso.list)
-  if(save.data = T){
+  if(save.data){
   save(op, file='op.rda')
   }
   return(op)

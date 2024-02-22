@@ -4,7 +4,7 @@ source('Sims/ROC_calcs.R')
 
 
 # Example of how to use the Bayesian graphical lasso by Wang et al. (2012)
-bglasso_ROC_sim <- function(n=200,p=100,plot = F){
+BGlasso_ROC_sim <- function(n=200,p=100,plot = F){
   set.seed(123)
   data.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free') 
   theta.true = data.sf$omega # The precision matrix

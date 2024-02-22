@@ -97,10 +97,6 @@ get_AUC = function(sim.obj, method='Glasso', cutoff=NULL){
     x = c(0,sim.obj$mean.FPR.glasso[-1])
     y = c(0,sim.obj$mean.TPR.glasso[-1])
   }
-  else if(method=='tiger'){
-    x = c(0,sim.obj$mean.FPR.tiger[-1])
-    y = c(0,sim.obj$mean.TPR.tiger[-1])   
-  }
 
   if(is.null(cutoff)){
     cutoff=max(x)
