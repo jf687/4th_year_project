@@ -75,7 +75,7 @@ module load R/4.0.3
 # CMD="./myApplication arg1 arg2 arg3"
 
 # Or run R:
-CMD="Rscript runsim.R"
+CMD="Rscript Sims/runsim.R"
 
 
 ###############################################################
