@@ -30,10 +30,34 @@ list_init <- list(a_rho = 1,
 ns <- seq(from = 50, to = 1000, by = 25)
 ps <- seq(from = 40, to = 500, by = 20)
 
-freq <- freq_run(ns = ns, ps = ps, save.data = F)
+BGlasso.op <- list()
+GHS.op <- list()
+GM.op <- list()
 
-BG <- BGlasso_ROC_sim()
-GHS <- GHS_ROC_sim()
+
+GLasso <- freq_run(ns = ns, ps = ps, save.data = T)
+
+for(n in ns){
+  for(p in ps){
+    
+    BGlasso <- BGlasso_ROC_sim(n = n, p = p)
+    BGlasso.op <- c(BGlasso.op,BGlasso)
+    
+    GM <- GM_ROC_sim(n = n, p = p)
+    GM.op <- c(GM.op, GM)
+    
+    
+    if(p<150){
+    GHS <- GHS_ROC_sim(n = n, p = p)
+    GHS.op <- c(GHS.op,GHS)
+    }
+  }
+}
+
+save(BGlasso.op, file='BGlasso_op.rda')
+save(GHS.op, file='GHS_op.rda')
+save(GM.op, file='GM_op.rda')
+
 
 n <- 100
 p <- 50
