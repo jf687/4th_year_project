@@ -61,7 +61,7 @@ GM_ROC_sim <- function(n = 100, p = 50, plot = F){
   auc_value <- ROCR::performance(pred, "auc")@y.values[[1]]
   prec_value <- ROCR::performance(pred, "prec")@y.values[[1]][613]
   browser()
-  rec_vaue <- ROCR::performance(pred, "recall")@y.values[[1]][613]
+  rec_value <- ROCR::performance(pred, "recall")@y.values[[1]][613]
   
   if(plot){
     plot(v0_v[2:16],res1$model_criterion$value[2:16], xlab = 'value of spike variance v0', ylab = 'AIC', type = 'l')

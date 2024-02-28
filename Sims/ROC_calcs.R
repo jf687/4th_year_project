@@ -168,3 +168,42 @@ data_gen <- function(n,p, sigma){
   }
   return(Y)
 }
+
+# Function to calculate AIC. N 
+AIC_GSS <- function(estimates, N){
+  Omega <- estimates$Omega
+  
+  Omega[estimates$m_delta <= 0.5] <- 0 
+  d <- sum(estimates$m_delta > 0.5)
+  
+  diag(Omega) <- diag(estimates$Omega) 
+  
+  det.Omega <- determinant(Omega, logarithm = TRUE)$modulus[1] 
+  
+  return( sum(diag(estimates$Sigma %*% Omega)) - N * det.Omega + 2 * d)
+  }
+
+# Function to calculate BIC
+BIC_GSS <- function(estimates, N){
+  Omega <- estimates$Omega
+  
+  Omega[estimates$m_delta <= 0.5] <- 0 
+  d <- sum(estimates$m_delta > 0.5)
+  
+  diag(Omega) <- diag(estimates$Omega) 
+  
+  det.Omega <- determinant(Omega, logarithm = TRUE)$modulus[1] 
+  return( sum(diag(estimates$Sigma %*% Omega)) - N * det.Omega + log(N)* d)
+}
+
+return_closest_threshold <- function(thresholds, target = 0.5) {
+  op <- -1
+  min.diff <- 1
+  for(i in 1:length(thresholds)){
+    if(abs(thresholds[[i]]-target) < min.diff){
+      min.diff <- abs(thresholds[[i]]-target) 
+      op <- i
+    }
+  }
+  return(op)
+}

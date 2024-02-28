@@ -8,17 +8,14 @@ source('~/4th_year_project/GM/fun_utils.R')
 
 generate_GM_preds_labels <- function(list_hyper, list_init,n= 200, p = 100, scale.data = T){
 
-  ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free', prob = 0.02) 
-
-  predictions <- c()
-  labels <- c()
+  ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free', prob = 0.02)
     
 
   adj_mat <- ggm.sf$theta
-  omega.true <- ggm.sf$omega
-  sigma.true <- ggm.sf$sigma
+  Omega.true <- ggm.sf$omega
+  Sigma.true <- ggm.sf$sigma
   
-  y = mvtnorm::rmvnorm(n, rep(0, p), sigma.true)
+  y = mvtnorm::rmvnorm(n, rep(0, p), Sigma.true)
   if(scale.data){
     y = scale(y)
   }
@@ -27,19 +24,30 @@ generate_GM_preds_labels <- function(list_hyper, list_init,n= 200, p = 100, scal
   
   bool_up <- upper.tri(res.ssl$m_delta)
   
-  labels <- c(labels, adj_mat[bool_up])
-  predictions <- c(predictions, res.ssl$m_delta[bool_up])
+  labels <- adj_mat[bool_up]
+  predictions <- res.ssl$m_delta[bool_up]
     
-
   pred <- ROCR::prediction(predictions, labels)
   perf <- ROCR::performance(pred, measure = "tpr", x.measure = "fpr")
-  
   auc_value <- ROCR::performance(pred, "auc")@y.values[[1]]
-  prec_value <- ROCR::performance(pred, "prec")@y.values[[1]]
-  #aic_value <- performance(pred, "aic")@y.values[[1]]
+  thresh <- return_closest_threshold(pred@cutoffs[[1]])
+  
+  prec_value <- ROCR::performance(pred, "prec")@y.values[[1]][thresh]
+  rec_value <- ROCR::performance(pred, "rec")@y.values[[1]][thresh]
   
   
-  return(list(predictions = predictions, labels = labels, pred = pred, perf = perf, auc_value = auc_value, prec_value = prec_value, v0 = list_hyper$v0, v1 = list_hyper$v1))#, aic_value = aic_value))
+  Omega.true[res.ssl$m_delta <= 0.5] <- 0 
+  d <- sum(res.ssl$m_delta > 0.5)
+
+  diag.Omega <- diag(res.ssl$Omega)
+  
+  det.Omega <- determinant(res.ssl$Omega, logarithm = TRUE)$modulus[1] 
+  
+  AIC = sum(diag(solve(res.ssl$Omega)%*% Omega.true)) - n * det.Omega + log(n)* d
+  
+  return(list(n = n, p = p , predictions = predictions, labels = labels, pred = pred, perf = perf, 
+              auc_value = auc_value, prec_value = prec_value, rec_value = rec_value, 
+                v0 = list_hyper$v0, v1 = list_hyper$v1, AIC = AIC))#, aic_value = aic_value))
 }
 
 
@@ -53,20 +61,23 @@ plot_ssl_ROC <- function(res.ssl){
 }
 
 
-get_ave_AUC <- function(list_hyper, list_init, count = 50, n= 200, p = 100){
+get_ave_AUC <- function(list_hyper, list_init, count = 50, n_= 200, p_ = 100){
   pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = count)
   AUC_vals <- c()
   PREC_vals <- c()
   REC_vals <- c()
+  AIC_vals <- c()
+  
+  
   for(p in 1:count){
     pb$tick()
-    res.ssl <- generate_GM_preds_labels(list_hyper, list_init)
+    res.ssl <- generate_GM_preds_labels(list_hyper, list_init, n = n_ , p = p_)
     AUC_vals <- c(AUC_vals, res.ssl$auc_value)
     PREC_vals <- c(PREC_vals, res.ssl$prec_value)
     REC_vals <- c(REC_vals, res.ssl$rec_value)
-    
+    AIC_vals <- c(AIC_vals, res.ssl$AIC)
   }
-  return(list(AUC = mean(AUC_vals), PREC = mean(PREC_vals), REC = mean(REC_vals) ))
+  return(list(AUC = mean(AUC_vals), PREC = mean(PREC_vals), REC = mean(REC_vals), AIC = mean(AIC_vals) ))
 }
 
 v0_grid <- function(list_hyper, list_init, v0_list = list(0.05, 0.1, 0.5, 1, 5, 10, 50, 100), plot = F, save.data = F,count = 50, n = 200, p = 100){
@@ -75,27 +86,31 @@ v0_grid <- function(list_hyper, list_init, v0_list = list(0.05, 0.1, 0.5, 1, 5, 
   auc.list = list()
   prec.list = list()
   rec.list = list()
+  aic.list = list()
   
   for(v0 in v0_list){
     list_hyper$v0 <- v0
     auc_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$AUC
     prec_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$PREC
     rec_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$REC
+    aic_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$AIC
     
     if(plot==T){
       res.ssl <- generate_GM_preds_labels(list_hyper, list_init)
       plot_ssl_ROC(res.ssl)
     }
-    op <- c(op, list(v0,v1,auc_value))
+    
     v0.list = c(v0.list, v0)
     auc.list = c(auc.list, auc_value)
     prec.list = c(prec.list, prec_value)
     rec.list = c(rec.list, rec_value)
+    aic.list = c(aic.list, aic_value)
   }
   list_hyper$v0 <- 0.5
   
-  op <- list(n, p , v0.list, auc.list, prec.list, rec.list)
-  if(save.data == T){
+  op <- list(n = n, p = p , v0 =  v0.list, auc = auc.list, prec = prec.list, rec = rec.list)
+  browser()
+  if(save.data){
   save(op, file = 'SSL_run.rda')
   }
   return(op)
