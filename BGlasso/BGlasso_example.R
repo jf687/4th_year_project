@@ -34,6 +34,7 @@ BGlasso_ROC_sim <- function(data.sf, n=200,p=100,plot = F){
   prec_value <- ROCR::performance(pred, "prec")@y.values[[1]][thresh]
   rec_value <- ROCR::performance(pred, "rec")@y.values[[1]][thresh]
   
+  sparsity = sparsity(omega)
   if(plot){
     plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
   }
@@ -99,3 +100,77 @@ BGlasso_run <- function(ns, ps){
   out$sparsities = sparsity.list
   return(out)
 }
+
+BGlasso_ROC_sim <- function(data.sf, n=100, p = 200){
+  set.seed(123)
+  theta.true = data.sf$omega # The precision matrix
+  theta.true[which(theta.true<10e-5,arr.ind=T)]=0
+  y.sf = mvtnorm::rmvnorm(n, sigma=solve(theta.true)) # Sample data
+  y.sf.scaled = scale(y.sf) # Scale columns/variables.
+  data.sf$sparsity # True sparsity: 0.02
+  
+  res.bglasso <- BayesianGLasso::blockGLasso(y.sf.scaled,iterations = 1000, burnIn = 100, lambdaPriora = 1, lambdaPriorb = 1/10)
+  theta.est.bglasso = apply(simplify2array(res.bglasso$Omegas), c(1,2), mean) # Posterior mean of MCMC samples
+  
+  
+  # To threshold, Li et al. (2017) use the symmetric central 50% posterior credible intervals for variable selection. 
+  # That is, if the 50% posterior credible interval of an off-diagonal element of does not contain zero, that element is considered a discovery, and vice versa. 
+  theta.bglasso.credible.lower = apply(res.bglasso$Omegas, c(1,2), FUN = function(s) quantile(s, 0.25))
+  theta.bglasso.credible.upper = apply(res.bglasso$Omegas, c(1,2), FUN = function(s) quantile(s, 0.75))
+  theta.bglasso.selected = theta.est.ghs
+  theta.bglasso.selected[(theta.bglasso.credible.lower < 0 & theta.bglasso.credible.upper > 0)] = 0
+  sparsity = sparsity(theta.bglasso.selected)
+  precision = precision(theta.true!=0, theta.bglasso.selected!=0)
+  recall = recall(theta.true!=0, theta.bglasso.selected!=0)
+  
+  # To vary the threshold for ROC curves etc, you can increase/decrease the width of the credible intervals used to determine nonzero effects. 
+  # I.e., replace 0.25 and 0.75 by x and 1.0-x for any 0<x<0.5.
+  quant.thresh = seq(0,0.5,length.out=50)
+  theta.path.ghs = list()
+  TPR.ghs = rep(0,length(quant.thresh))
+  FPR.ghs = rep(0,length(quant.thresh))
+  
+  pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = length(quant.thresh))
+  
+  for(x in 1:length(quant.thresh)){
+    
+    pb$tick()
+    theta.bglasso.credible.lower = apply(res.bglasso$Omegas, c(1,2), FUN = function(s) quantile(s, quant.thresh[x]))
+    theta.bglasso.credible.upper = apply(res.bglasso$Omegas, c(1,2), FUN = function(s) quantile(s, 1-quant.thresh[x]))
+    theta.bglasso.selected = theta.est.ghs
+    theta.bglasso.selected[(theta.bglasso.credible.lower < 0 & theta.bglasso.credible.upper > 0)] = 0
+    theta.path.ghs[[x]] = theta.bglasso.selected
+    TPR.ghs[x] = TPR(theta.true!=0, theta.bglasso.selected!=0)
+    FPR.ghs[x] = FPR(theta.true!=0, theta.bglasso.selected!=0)
+  }
+  
+  bool_up <- upper.tri(theta.true)
+  
+  labels <- theta.true[bool_up]>0
+  predictions <- theta.est.ghs[bool_up]
+  
+  
+  pred <- ROCR::prediction(predictions, labels)
+  perf <- ROCR::performance(pred, measure = "tpr", x.measure = "fpr")
+  
+  thresh <- return_closest_threshold(pred@cutoffs[[1]])
+  
+  auc_value <- ROCR::performance(pred, "auc")@y.values[[1]]
+  prec_value <- ROCR::performance(pred, "prec")@y.values[[1]][thresh]
+  rec_value <- ROCR::performance(pred, "rec")@y.values[[1]][thresh]
+  
+  
+  plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
+  
+  # Plot ROC curve manually
+  
+  plot(FPR.ghs,TPR.ghs,type='l', col='red')
+  
+  x = c(0,FPR.ghs)
+  y = c(0,TPR.ghs)
+  AUC=flux::auc(x, y)
+  
+  return(list(n = n, p = p, AUC = AUC,auc_value = auc_value, precision = precision, recall = recall, sparsity = sparsity))
+  
+}
+

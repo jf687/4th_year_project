@@ -21,7 +21,19 @@ generate_frequentist_preds_labels <- function(sf, n = 200, p = 100){
   
   
   res.glasso = huge(y, method = 'glasso', nlambda=n.lambda, verbose = F)
-  res.glasso.omegas = res.glasso$icov # A list of precision matrices
+  
+  
+  sim.obj = huge.select(res.glasso, criterion = 'ebic', ebic.gamma = 0) # stars.thresh = 0.05)
+  
+  
+  res.glasso.omega.opt = sim.obj$opt.icov # A list of precision matrices
+  
+  ## threshold e-10
+  ## find SE
+  
+  
+  
+  
   res$precisions.glasso = unlist(lapply(res.glasso.omegas, FUN = function(s) precision(abs(s)>1e-5, abs(omega.true)>1e-5)))
   res$recalls.glasso = unlist(lapply(res.glasso.omegas, FUN = function(s) recall(abs(s)>1e-5, abs(omega.true)>1e-5)))
   res$TPR.glasso[1,] = unlist(lapply(res.glasso.omegas, FUN = function(s) TPR(abs(s)>1e-5, abs(omega.true)>1e-5)))
@@ -154,8 +166,7 @@ GLasso_multi_rep <- function(N = 50, n = 200, p = 100){
       browser()
       cutoff <- max(res$mean.FPR.glasso)
       df.plot = data.frame(TPR=res$mean.TPR.glasso, FPR=res$mean.FPR.glasso)[-1,]
-      ggplot(df.plot, aes(x=FPR, y=TPR))+geom_point(colour='red')+geom_line(colour='red')+
-        theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
+      ggplot(df.plot, aes(x=FPR, y=TPR))+geom_point(colour='red')+geom_line(colour='red')+theme_bw()+ylim(0,1)+xlim(0,cutoff)+geom_abline(slope=1, linetype='dashed',color='grey')
     }
   }
 
