@@ -35,22 +35,11 @@ GHS.op <- list()
 GM.op <- list()
 
 
-GLasso <- freq_run(ns = ns, ps = ps, save.data = T)
 
 for(n in ns){
   for(p in ps){
-    
-    BGlasso <- BGlasso_ROC_sim(n = n, p = p)
+    BGlasso <- multiple_BGlasso(20,n,p) #BGlasso_ROC_sim(n = n, p = p)
     BGlasso.op <- c(BGlasso.op,BGlasso)
-    
-    GM <- GM_ROC_sim(n = n, p = p)
-    GM.op <- c(GM.op, GM)
-    
-    
-    if(p<150){
-    GHS <- GHS_ROC_sim(n = n, p = p)
-    GHS.op <- c(GHS.op,GHS)
-    }
   }
 }
 
@@ -62,9 +51,14 @@ save(GM.op, file='GM_op.rda')
 n <- 100
 p <- 50
 
-#v0_grid(list_hyper, list_init, v0_list = v0s, save.data = T, n=200, p = 100)
-#v0_grid(list_hyper, list_init, v0_list = v0s, save.data = T, n=400, p = 200)
-#v0_grid(list_hyper, list_init, v0_list = v0s, save.data = T, n=750, p = 300)
+v0s <- list(0.01,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4)
+
+v0.op.1 <- v0_grid(list_hyper, list_init, v0_list = v0s, save.data = F, n=200, p = 100)
+save(v0.op.1, file='SSL_1.rda')
+v0.op.2 <- v0_grid(list_hyper, list_init, v0_list = v0s, save.data = F, n=400, p = 200)
+save(v0.op.2, file='SSL_2.rda')
+v0.op.3 <- v0_grid(list_hyper, list_init, v0_list = v0s, save.data = F, n=750, p = 300)
+save(v0.op.3, file='SSL_3.rda')
 
 
 

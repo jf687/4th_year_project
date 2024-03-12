@@ -35,21 +35,50 @@ generate_GM_preds_labels <- function(list_hyper, list_init,n= 200, p = 100, scal
   prec_value <- ROCR::performance(pred, "prec")@y.values[[1]][thresh]
   rec_value <- ROCR::performance(pred, "rec")@y.values[[1]][thresh]
   
-  
-  Omega.true[res.ssl$m_delta <= 0.5] <- 0 
-  d <- sum(res.ssl$m_delta > 0.5)
-
-  diag.Omega <- diag(res.ssl$Omega)
-  
-  det.Omega <- determinant(res.ssl$Omega, logarithm = TRUE)$modulus[1] 
-  
-  AIC = sum(diag(solve(res.ssl$Omega)%*% Omega.true)) - n * det.Omega + log(n)* d
-  
+  AIC <- aic_ssl(y, res.ssl$Omega, n,p)
+  BIC <- bic_ssl(y, res.ssl$Omega, n, p)
   return(list(n = n, p = p , predictions = predictions, labels = labels, pred = pred, perf = perf, 
               auc_value = auc_value, prec_value = prec_value, rec_value = rec_value, 
-                v0 = list_hyper$v0, v1 = list_hyper$v1, AIC = AIC))#, aic_value = aic_value))
+                v0 = list_hyper$v0, v1 = list_hyper$v1, AIC = AIC, BIC = BIC, sparsity = ggm.sf$sparsity))
 }
 
+aic_ssl <- function(Y, omega.est, n,p){
+  S = cov(Y)
+  if (mean(dim(S) == dim(omega.est)) != 1) 
+    stop("matrices must have the same dimension")
+  if (det(omega.est) <= 0) 
+    stop("precision matrix must be positive definite.")
+  if (!isSymmetric(S)) 
+    stop("sample covariance matrix must be symmetric")
+  if (n <= 0) 
+    stop("number of observations n must be positive")
+  p <- nrow(omega.est)
+  omega.est2 <- omega.est
+  diag(omega.est2) <- rep(0, p)
+  d <- sum(omega.est != 0)/2
+  loglik <- n * log(det(omega.est))/2- n * sum(diag(S%*% omega.est))/2
+  aic = -2 * loglik + 2 * d
+  return(aic)
+}
+
+bic_ssl <- function(Y, omega.est, n,p){
+  S = cov(Y)
+  if (mean(dim(S) == dim(omega.est)) != 1) 
+    stop("matrices must have the same dimension")
+  if (det(omega.est) <= 0) 
+    stop("precision matrix must be positive definite.")
+  if (!isSymmetric(S)) 
+    stop("sample covariance matrix must be symmetric")
+  if (n <= 0) 
+    stop("number of observations n must be positive")
+  p <- nrow(omega.est)
+  omega.est2 <- omega.est
+  diag(omega.est2) <- rep(0, p)
+  d <- sum(omega.est != 0)/2
+  loglik <- n * log(det(omega.est))/2- n * sum(diag(S%*% omega.est))/2
+  bic = -2 * loglik + d*log(n)
+  return(bic)
+}
 
 plot_ssl_ROC <- function(res.ssl){
   auc_value = res.ssl$auc_value
@@ -61,13 +90,14 @@ plot_ssl_ROC <- function(res.ssl){
 }
 
 
-get_ave_AUC <- function(list_hyper, list_init, count = 50, n_= 200, p_ = 100){
-  pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = count)
+get_ave_AUC <- function(list_hyper, list_init, count = 50, n_= 200, p_ = 100, v.length = 1){
+  pb <- progress_bar$new(format = "[:bar] :percent ETA: :eta", total = count*v.length)
   AUC_vals <- c()
   PREC_vals <- c()
   REC_vals <- c()
   AIC_vals <- c()
-  
+  BIC_vals <- c()
+  SPARS_vals <- c()
   
   for(p in 1:count){
     pb$tick()
@@ -76,25 +106,33 @@ get_ave_AUC <- function(list_hyper, list_init, count = 50, n_= 200, p_ = 100){
     PREC_vals <- c(PREC_vals, res.ssl$prec_value)
     REC_vals <- c(REC_vals, res.ssl$rec_value)
     AIC_vals <- c(AIC_vals, res.ssl$AIC)
+    BIC_vals <- c(BIC_vals, res.ssl$BIC)
+    SPARS_vals <- c(SPARS_vals, res.ssl$sparsity)
+    
   }
-  return(list(AUC = mean(AUC_vals), PREC = mean(PREC_vals), REC = mean(REC_vals), AIC = mean(AIC_vals) ))
+  return(list(AUC = mean(AUC_vals), PREC = mean(PREC_vals), REC = mean(REC_vals), AIC = mean(AIC_vals), BIC = mean(BIC_vals), sparsity = mean(SPARS_vals)))
 }
 
-v0_grid <- function(list_hyper, list_init, v0_list = list(0.05, 0.1, 0.5, 1, 5, 10, 50, 100), plot = F, save.data = F,count = 50, n = 200, p = 100){
+v0_grid <- function(list_hyper, list_init, v0_list = list(0.05, 0.1, 0.5, 1, 5, 10, 50, 100), plot = F, save.data = F,count = 30, n = 200, p = 100){
   
+  v.length = length(v0_list)
   v0.list = list()
   auc.list = list()
   prec.list = list()
   rec.list = list()
   aic.list = list()
+  bic.list = list()
+  sparsity.list = list()
   
   for(v0 in v0_list){
     list_hyper$v0 <- v0
-    auc_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$AUC
-    prec_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$PREC
-    rec_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$REC
-    aic_value <- get_ave_AUC(list_hyper, list_init,count, n,p)$AIC
-    
+    out <- get_ave_AUC(list_hyper, list_init,count, n,p,v.length = v.length)
+    auc_value <- out$AUC
+    prec_value <- out$PREC
+    rec_value <- out$REC
+    aic_value <- out$AIC
+    bic_value <- out$BIC
+    spars_value <- out$sparsity
     if(plot==T){
       res.ssl <- generate_GM_preds_labels(list_hyper, list_init)
       plot_ssl_ROC(res.ssl)
@@ -105,11 +143,13 @@ v0_grid <- function(list_hyper, list_init, v0_list = list(0.05, 0.1, 0.5, 1, 5, 
     prec.list = c(prec.list, prec_value)
     rec.list = c(rec.list, rec_value)
     aic.list = c(aic.list, aic_value)
+    bic.list = c(bic.list, bic_value)
+    sparsity.list = c(sparsity.list, spars_value)
+    
   }
   list_hyper$v0 <- 0.5
   
-  op <- list(n = n, p = p , v0 =  v0.list, auc = auc.list, prec = prec.list, rec = rec.list)
-  browser()
+  op <- list(n = n, p = p , v0 =  v0.list, auc = auc.list, prec = prec.list, rec = rec.list, aic = aic.list, bic = bic.list, sparsity = sparsity.list)
   if(save.data){
   save(op, file = 'SSL_run.rda')
   }
