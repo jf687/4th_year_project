@@ -40,7 +40,6 @@ GHS =  function(S,n,burnin=500,nmc=3000){
   xi = 1
   
   for (iter in 1:(burnin+nmc)){  
-    print(iter)
     ### sample Sigma and Omega=inv(Sigma)
     for (i in 1:p){
       
