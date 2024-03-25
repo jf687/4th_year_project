@@ -1,10 +1,16 @@
-source('~/4th_year_project/Sims/ROC_calcs.R')
-source('~/4th_year_project/Sims/Glasso_ROC_sim.R')
-source('~/4th_year_project/GM/GM.R')
-source('~/4th_year_project/GM/fun_GM.R')
-source('~/4th_year_project/GM/fun_utils.R')
-source('~/4th_year_project/GHS/GHS_example.R')
-source('~/4th_year_project/BGlasso/BGlasso_example.R')
+source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
+source('~/4th_year_project/aux_sim_funcs/libraries.R')
+source('~/4th_year_project/aux_sim_funcs/select.v0.bic.R')
+
+source('~/4th_year_project/ROC_sim_functions/Glasso_ROC_sim.R')
+source('~/4th_year_project/ROC_sim_functions/BGlasso_example.R')
+source('~/4th_year_project/ROC_sim_functions/GHS_example.R')
+source('~/4th_year_project/ROC_sim_functions/GM_ROC_sim.R')
+
+source('~/4th_year_project/aux_method_funcs/GM/GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_utils.R')
+source('~/4th_year_project/aux_method_funcs/GHS/GHS.R')
 
 ##TEST MARK##
 list_hyper <- list(lambda = 2,                   
@@ -39,9 +45,9 @@ GHS.op <- list()
 GHS.runtimes <- list()
 
 SSL.bool <- T
-GLasso.bool <- T
-BGLasso.bool <- T
-GHS.bool <- T
+GLasso.bool <- F
+BGLasso.bool <- F
+GHS.bool <- F
 
 for(n in list(100)){
   for(p in list(50)){

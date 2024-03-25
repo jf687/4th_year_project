@@ -1,6 +1,8 @@
-source('GM/GM.R')
-source('GM/fun_utils.R')
-source('GM/fun_GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_utils.R')
+
+
 select.v0.bic <- function(Y, list_hyper, list_init, v0.vals,t.vals,n,p){
   Omega.t.list <- list()
   Omega.opt.list <- list()

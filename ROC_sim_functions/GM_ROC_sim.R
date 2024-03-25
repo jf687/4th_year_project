@@ -1,8 +1,9 @@
-source('~/4th_year_project/Sims/ROC_calcs.R')
+source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
+source('~/4th_year_project/aux_sim_funcs/select.v0.bic.R')
 
-source('~/4th_year_project/GM/GM.R')
-source('~/4th_year_project/GM/fun_GM.R')
-source('~/4th_year_project/GM/fun_utils.R')
+source('~/4th_year_project/aux_method_funcs/GM/GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_GM.R')
+source('~/4th_year_project/aux_method_funcs/GM/fun_utils.R')
 
 if(F){
   ggm.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free', prob = 0.02)

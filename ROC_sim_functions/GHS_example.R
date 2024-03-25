@@ -1,6 +1,6 @@
 
-source('GHS/GHS.R')
-source('Sims/ROC_calcs.R')
+source('~/4th_year_project/aux_method_funcs/GHS/GHS.R')
+source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
 library(huge)
 
 

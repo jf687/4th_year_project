@@ -1,9 +1,4 @@
-source('~/4th_year_project/Sims/ROC_calcs.R')
-
-
-
-y = mvtnorm::rmvnorm(n, rep(0, p), sigma.true)
-y = scale(y)
+source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
 
 
 GLasso_ROC_sim <- function(GLasso.sf, y){

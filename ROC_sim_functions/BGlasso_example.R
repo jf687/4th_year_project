@@ -1,5 +1,6 @@
 
-source('Sims/ROC_calcs.R')
+source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
+
 
 #data.sf = huge::huge.generator(n=n, d=p,graph = 'scale-free')
 # Example of how to use the Bayesian graphical lasso by Wang et al. (2012)
