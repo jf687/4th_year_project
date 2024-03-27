@@ -80,6 +80,12 @@ update_mu_zetaij <-
   }
 
 
+get_m2_zeta <- function(mu_zeta, sig2_inv_zeta) {
+  
+  mu_zeta ^ 2 + sig2_inv_zeta ^ (-1)
+  
+}
+
 #####################
 
 ## sigma's updates ##
