@@ -88,7 +88,7 @@ gmt <- function(Ys,
   
   list_hyper <- set_default(list_hyper, 'n0', -2)
   
-  list_hyper <- set_default(list_hyper, 't02', 0.5)
+  list_hyper <- set_default(list_hyper, 't02', 20)
   if(list_hyper$t02 <= 0)stop("t02 must be positive.")
   
   if (verbose) cat("... done. == \n\n")
