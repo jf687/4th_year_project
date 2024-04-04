@@ -32,7 +32,7 @@ ps <- seq(from = 50, to = 100, length.out = 2)
 v0.vals <- seq(from = 0.01, to = 1.3, length.out = 20)
 t.vals <- seq(from = 0.01, to = 1, length.out = 100)
 
-N <- 50
+N <- 5
 
 SSL.op <- list()
 SSL.runtimes <- list()
@@ -45,9 +45,9 @@ GHS.op <- list()
 GHS.runtimes <- list()
 
 SSL.bool <- T
-GLasso.bool <- F
-BGLasso.bool <- F
-GHS.bool <- F
+GLasso.bool <- T
+BGLasso.bool <- T
+GHS.bool <- T
 
 for(n in list(100)){
   for(p in list(50)){
