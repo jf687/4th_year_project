@@ -142,13 +142,13 @@ update_beta_tau <- function(Omegas, dstars, b_tau, Tn, c = 1) {
   
 }
 
-get_m_tau <- function(alpha_tau, beta_tau) {
+get_m_tau_gmt <- function(alpha_tau, beta_tau) {
   
   alpha_tau / beta_tau
   
 }
 
-get_m_log_tau <- function(alpha_tau,beta_tau) {
+get_m_log_tau_gmt <- function(alpha_tau,beta_tau) {
   
   eps <- .Machine$double.eps
   digamma(alpha_tau + eps) - log(beta_tau + eps)

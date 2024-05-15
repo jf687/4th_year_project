@@ -253,7 +253,7 @@ gmt <- function(Ys,
   
   # Initialise deduced quantities
   #
-  m_tau <- get_m_tau(alpha_tau, beta_tau)
+  m_tau <- get_m_tau_gmt(alpha_tau, beta_tau)
   m1_alphas <- get_m1_alphas(mu_zeta, mu_beta, ts)
   m2_beta <- get_m2_beta(mu_beta, sig2_inv_beta)
   
@@ -328,8 +328,8 @@ gmt <- function(Ys,
       alpha_tau <- update_alpha_tau(a_tau, P, Tn)
       beta_tau <- update_beta_tau(Omegas, dstars, b_tau, Tn)
       
-      m_tau <- get_m_tau(alpha_tau, beta_tau)
-      m_log_tau <- get_m_log_tau(alpha_tau, beta_tau)
+      m_tau <- get_m_tau_gmt(alpha_tau, beta_tau)
+      m_log_tau <- get_m_log_tau_gmt(alpha_tau, beta_tau)
       # % #
       
       # % # sigma

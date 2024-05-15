@@ -32,7 +32,7 @@ ps <- seq(from = 50, to = 100, length.out = 2)
 v0.vals <- seq(from = 0.01, to = 1.3, length.out = 20)
 t.vals <- seq(from = 0.01, to = 1, length.out = 100)
 
-N <- 5
+N <- 2
 
 SSL.op <- list()
 SSL.runtimes <- list()
@@ -46,12 +46,11 @@ GHS.runtimes <- list()
 
 SSL.bool <- T
 GLasso.bool <- T
-BGLasso.bool <- T
-GHS.bool <- T
+BGLasso.bool <- F
+GHS.bool <- F
 
-for(n in list(100)){
-  for(p in list(50)){
-    runtime <- list()
+for(n in list(200)){
+  for(p in list(100)){
     if(n>p){
       
       cat('=========n:',n,'p:',p,'==========')
@@ -64,72 +63,43 @@ for(n in list(100)){
       omega.true <- sf$omega
       sigma.true <- sf$sigma
       
-      runtime$n <- n
-      runtime$p <- p
       
-      
-      
+
       ###### SSL ######
       if(SSL.bool){
-        
-        start.time <- Sys.time()
   
-        SSL <- GM_average(sf, N, list_hyper, list_init, v0.vals, t.vals)
+        SSL <- GM_average(sf, N, list_hyper, list_init, v0.vals, t.vals, plot = TRUE)
         SSL.op <- c(SSL.op, SSL)
-        
-        end.time <- Sys.time()
-        
-        runtime$time <- end.time - start.time
-        
-        SSL.runtimes <- c(SSL.runtimes, runtime)
-        
+            
         print('#### SSL simulation complete ####')
       }
       ##### GLasso #####
       
       if(GLasso.bool){
-        
-        start.time <- Sys.time()
-        
-        GLasso <- GLasso_average(sf, N)
+
+        GLasso <- GLasso_average(sf, N, plot = TRUE)
         GLasso.op <- c(GLasso.op, GLasso)
-        
-        end.time <- Sys.time()
-        
-        runtime$time <- end.time - start.time
-        
-        GLasso.runtimes <- c(GLasso.runtimes, runtime)
+
         
         print('#### GLasso simulation complete ####')
       }
       ##### BGLasso #####
       
       if(BGLasso.bool){
-        start.time <- Sys.time()
+
         
         BGLasso <- BGLasso_average(sf, N)
         BGLasso.op <- c(BGLasso.op, BGLasso)
         
-        end.time <- Sys.time()
-        
-        runtime$time <- end.time - start.time
-        
-        BGLasso.runtimes <- c(BGLasso.runtimes, runtime)
         
         print('#### BGLasso simulation complete ####')
       }
       
       if(GHS.bool){
-        start.time <- Sys.time()
-        
+
         GHS <- GHS_average(sf, N)
         GHS.op <- c(GHS.op, GHS)
-        
-        end.time <- Sys.time()
-        
-        runtime$time <- end.time - start.time
-        
-        GHS.runtimes <- c(GHS.runtimes, runtime)
+
         
         print('#### GHS simulation complete ####')
       }
@@ -139,11 +109,16 @@ for(n in list(100)){
   }
 }
 
-save(SSL.op, file = 'SSL.outputs')
-save(SSL.runtimes, file = 'SSL.runtimes')
-save(GLasso.op, file = 'GLasso.outputs')
-save(GLasso.runtimes, file = 'GLasso.runtimes')
-save(BGLasso.op, file = 'BGLasso.outputs')
-save(BGLasso.runtimes, file = 'BGLasso.runtimes')
-save(GHS.op, file = 'GHS.outputs')
-save(GHS.runtimes, file = 'GHS.runtimes')
+print(SSL.op)
+print(GLasso.op)
+print(BGLasso.op)
+print(GHS.op)
+
+save(SSL.op, file = 'results/SSL.outputs')
+
+save(GLasso.op, file = 'results/GLasso.outputs')
+
+save(BGLasso.op, file = 'results/BGLasso.outputs')
+
+save(GHS.op, file = 'results/GHS.outputs')
+

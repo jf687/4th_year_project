@@ -8,7 +8,6 @@ select.v0.bic <- function(Y, list_hyper, list_init, v0.vals,t.vals,n,p){
   Omega.opt.list <- list()
   
   for(j in 1:length(v0.vals)){
-    cat('v0 = ',v0.vals[[j]])
     list_hyper$v0 <- v0.vals[j]
     out <- GM(Y, list_hyper, list_init)
     

@@ -8,6 +8,16 @@ source('~/4th_year_project/aux_sim_funcs/ROC_calcs.R')
 #y = scale(y.sf) # Scale columns/variables.
 
 
+test_BGLasso = function(){
+  set.seed(999)
+  sf = huge::huge.generator(n=100, d=50,graph = 'scale-free', prob = 0.02)
+  y = mvtnorm::rmvnorm(100, rep(0, 50), sf$sigma)
+  y = scale(y)
+  opBGLasso <- BGLasso_ROC_sim(sf,y)
+  plot.BGLasso(opBGLasso)
+}
+
+
 BGLasso_ROC_sim <- function(data.sf, y){
 
   theta.true = data.sf$omega # The precision matrix
@@ -19,7 +29,9 @@ BGLasso_ROC_sim <- function(data.sf, y){
   iterations = 1000
   burnIn = 100
   
+  start.time <- Sys.time()
   res.bglasso <- BayesianGLasso::blockGLasso(y, iterations = 1000, burnIn = 100, lambdaPriora = 1, lambdaPriorb = 1/10)
+  end.time <- Sys.time()
   res.bglasso$Omegas = simplify2array(res.bglasso$Omegas)
   theta.est.bglasso = apply(simplify2array(res.bglasso$Omegas), c(1,2), mean) # Posterior mean of MCMC samples
 
@@ -40,7 +52,7 @@ BGLasso_ROC_sim <- function(data.sf, y){
   
   # To vary the threshold for ROC curves etc, you can increase/decrease the width of the credible intervals used to determine nonzero effects. 
   # I.e., replace 0.25 and 0.75 by x and 1.0-x for any 0<x<0.5.
-  quant.thresh = seq(0.25,0.75,length.out=50)
+  quant.thresh = seq(0,0.48,length.out=50)
   theta.path.BGLasso = list()
   TPR.BGLasso = rep(0,length(quant.thresh))
   FPR.BGLasso = rep(0,length(quant.thresh))
@@ -64,7 +76,8 @@ BGLasso_ROC_sim <- function(data.sf, y){
   AUC=flux::auc(x, y)
   
   return(list(n = n, p = p, AUC = AUC, precision = precision, recall = recall, 
-              sparsity = sparsity, lambda = lambda, FPR.BGLasso = FPR.BGLasso, TPR.BGLasso = TPR.BGLasso))
+              sparsity = sparsity, lambda = lambda, FPR.BGLasso = FPR.BGLasso,
+              TPR.BGLasso = TPR.BGLasso, time = end.time - start.time))
   
 }
 
@@ -81,6 +94,7 @@ BGLasso_average <- function(data.sf, N){
   PREC.list = c()
   SPARS.list = c()
   lambda.list = c()
+  time.list = c()
   
   for(i in 1:N){
     
@@ -95,6 +109,7 @@ BGLasso_average <- function(data.sf, N){
     PREC.list = c(PREC.list, op$precision)
     SPARS.list = c(SPARS.list, op$sparsity)
     lambda.list = c(lambda.list, op$lambda)
+    time.list = c(time.list, op$time)
     
     seed <- seed + 1
   }
@@ -103,8 +118,9 @@ BGLasso_average <- function(data.sf, N){
   res$REC = list(mean = mean(REC.list), SE = sd(REC.list)/sqrt(N))
   res$PREC = list(mean = mean(PREC.list), SE = sd(PREC.list)/sqrt(N))
   res$SPARS = list(mean = mean(SPARS.list), SE = sd(SPARS.list)/sqrt(N))
-  res$AUC = list(mean = mean(AUC.list), SE = sd(AUC.list)/sqrt(N))
-  res$lambda = list(mean = mean(lambda.list), SE = sd(AUC.list)/sqrt(N))
+  res$lambda = list(mean = mean(lambda.list), SE = sd(lambda.list)/sqrt(N))
+  res$time = list(mean = mean(time.list), SE = sd(time.list)/sqrt(N))
+  
   
   res$n = n
   res$p = p
@@ -114,6 +130,9 @@ BGLasso_average <- function(data.sf, N){
 }
 
 plot.BGLasso <- function(op){
-  plot(op$FPR.BGLasso,op$TPR.BGLasso,type='l', col='red', xlab = "FPR", ylab = "TPR", main = "ROC curve for BGLasso method")
-}
+  plot(c(op$FPR.BGLasso,1),c(op$TPR.BGLasso,1),type='l', col='red', xlab = "FPR", ylab = "TPR", main = "ROC plot using BGLasso method with data size n = 200, p = 100.")
+  abline(a= 0, b = 1, col = "gray80")
+  i <- gmean_maximisaton(op$FPR.BGLasso, op$TPR.BGLasso)$i
+  points(op$FPR.BGLasso[[i]], y = op$TPR.BGLasso[[i]])
+  }
 
