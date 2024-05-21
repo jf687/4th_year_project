@@ -77,6 +77,7 @@ sparsity <- function(omega, strict = TRUE, threshold = 1e-15){
   # Calculate the total number of elements in the matrix
   
   diag(omega) = 0
+  p=ncol(omega)
   
   total_elements <- length(omega)
   
@@ -88,11 +89,24 @@ sparsity <- function(omega, strict = TRUE, threshold = 1e-15){
   }
   
   # Calculate the sparsity as 1 minus the proportion of zero elements
-  sparsity <- 1 - zero_elements / total_elements
+  #sparsity <- 1 - zero_elements / total_elements
+  sparsity =  1 - (zero_elements -p)/ (total_elements-p)
   
   return(sparsity)
 }
 
+
+# Find Matthews correlation coefficient for estimated graph
+MCC = function(g,g.hat){
+  p = nrow(g[,])
+  diag(g) = rep(0,p) # Let diagonal elements be zero
+  diag(g.hat) = rep(0,p) 
+  tp = sum(g.hat ==1 & g ==1)/10 # True positives. Divide by 10 to avoid integer overflow. 
+  fp = sum(g.hat ==1 & g ==0)/10 # False positives
+  tn = (sum(g.hat == 0 & g == 0) - p)/10 # True negatives (do not include diagonal elements)
+  fn = sum(g.hat == 0 & g == 1)/10 # False negatives
+  return((tp*tn - fp*fn)/(sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn))))
+}
 
 get_AUC = function(sim.obj, method='Glasso', cutoff=NULL){
   # Adding the point (0,0)
