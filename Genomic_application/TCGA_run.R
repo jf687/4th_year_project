@@ -40,9 +40,9 @@ plot_graph <- function(stage_data, prec_matr, t = 0.5, title = 'Proteomic graphi
 
 ## Begin by running each stage seperately using the SSL model and plotting the resulting graph
 
-stage_example_SSL <- function(stage_data = brca_dat_stageIII){
+stage_example_SSL <- function(stage_data = brca_dat_stageIII, filename = 'SSL_stageIII.RData'){
   p <- dim(stage_data)[[2]]
-  n <- dim(stage_data)[[2]]
+  n <- dim(stage_data)[[1]]
   list_hyper <- list(lambda = 2,                   
                      v0 = 0.2,                  
                      v1 = 100,                   
@@ -54,11 +54,17 @@ stage_example_SSL <- function(stage_data = brca_dat_stageIII){
                     b_rho = 1,                  
                     a_tau = 1,                  
                     b_tau = 1)
-    
+  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 25)
+  t.vals <- seq(from = 0.01, to = 1, length.out = 100)
+  
+  v0.selection <- select.v0.bic(stage_data, list_hyper, list_init, v0.vals,t.vals,n=140,p=131)
+  list_hyper$v0 <- v0.selection$v0.opt
+  thresh <- v0.selection$t.opt
+  
+
   res.ssl <- GM(stage_data, list_hyper, list_init)
-  browser()
-  print(sparsity(res.ssl$m_delta, strict = F, 0.5))
-  plot_graph(stage_data, res.ssl$m_delta, 0.5)
+  save(res.ssl, file = filename)
+  plot_graph(stage_data, res.ssl$m_delta, thresh)
 }
 
 stage_example_GLasso <- function(stage_data = brca_dat_stageI, t = 0){
@@ -76,24 +82,34 @@ stage_example_GLasso <- function(stage_data = brca_dat_stageI, t = 0){
 
 TCGA_GMT <- function(){
   
+  
   Ys <- list(brca_dat_stageI, brca_dat_stageII, brca_dat_stageIII)
+  
+  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 25)
+  t.vals <- seq(from = 0.01, to = 1, length.out = 100)
+  
+  v0.selection <- select.v0.bic(stage_data, list_hyper, list_init, v0.vals,t.vals,n=140,p=131)
+  v0.selection$v0.opt
+  thresh <- v0.selection$t.opt
+  
   ts <- 1:length(Ys)
   out <- gmt(Ys,
              ts,
-             debug = T)
+             debug = T,
+             set_v0 = v0.selection$v0.opt)
   browser()
   
-  
-  plot_graph(brca_dat_stageI, out$estimates$m_deltas[[1]] , 0.5, title = 'Proteomic network of stage I breast carcinoma patients')
-  plot_graph(brca_dat_stageII, out$estimates$m_deltas[[2]],  0.5, title = 'Proteomic network of stage II breast carcinoma patients')
-  plot_graph(brca_dat_stageIII, out$estimates$m_deltas[[3]], 0.5, title = 'Proteomic network of stage III breast carcinoma patients')
+  plot_graph(brca_dat_stageI, out$estimates$m_deltas[[1]] , thresh, title = 'Proteomic network of stage I breast carcinoma patients')
+  plot_graph(brca_dat_stageII, out$estimates$m_deltas[[2]],  thresh, title = 'Proteomic network of stage II breast carcinoma patients')
+  plot_graph(brca_dat_stageIII, out$estimates$m_deltas[[3]], thresh, title = 'Proteomic network of stage III breast carcinoma patients')
   
   
 }
 
-#Ys <- list(brca_dat_stageI, brca_dat_stageII, brca_dat_stageIII)
-#ts <- 1:length(Ys)
-#out <- gmt(Ys,
- #          ts,
-  #         debug = T)
+all_stages_SSL <- function(){
+  stage_example_SSL(brca_dat_stageI, 'SSL_stageI.RData')
+  stage_example_SSL(brca_dat_stageII, 'SSL_stageII.RData')
+  stage_example_SSL(brca_dat_stageIII, 'SSL_stageIII.RData')
+  
+}
 

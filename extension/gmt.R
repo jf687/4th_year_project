@@ -24,7 +24,8 @@ gmt <- function(Ys,
                 tol = 1e-3,
                 maxit = 1e5,
                 verbose = T,
-                debug = F
+                debug = F, 
+                set_v0 = F
 ) {
   
   
@@ -66,7 +67,10 @@ gmt <- function(Ys,
   list_hyper <- set_default(list_hyper, 'lambda', 2)
   if(list_hyper$lambda <= 0)stop("lambda must be positive.")
   
-  list_hyper <- set_default(list_hyper, 'v0', 0.1)
+  if(set_v0){
+    list_hyper <- set_default(list_hyper, 'v0', set_v0)
+  }else{
+  list_hyper <- set_default(list_hyper, 'v0', 0.1)}
   if(list_hyper$v0 <= 0)stop("v0 must be positive.")
   
   
@@ -395,7 +399,7 @@ gmt <- function(Ys,
       
       # check the increasing ELBO in the variational step
       #
-      if (debug && ELBO + eps < ELBO_old) {
+      if (TRUE){#debug && ELBO + eps < ELBO_old) {
         
         warning(paste0(
           "Non-increasing in the VB step: ELBO_old = ",
