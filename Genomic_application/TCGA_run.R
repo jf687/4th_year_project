@@ -63,8 +63,10 @@ stage_example_SSL <- function(stage_data = brca_dat_stageIII, filename = 'SSL_st
   
 
   res.ssl <- GM(stage_data, list_hyper, list_init)
-  save(res.ssl, file = filename)
+  #save(res.ssl, file = filename)
   plot_graph(stage_data, res.ssl$m_delta, thresh)
+  
+  return(list(res.ssl$m_delta,thresh))
 }
 
 stage_example_GLasso <- function(stage_data = brca_dat_stageI, t = 0){
@@ -97,19 +99,24 @@ TCGA_GMT <- function(){
              ts,
              debug = T,
              set_v0 = v0.selection$v0.opt)
-  browser()
   
   plot_graph(brca_dat_stageI, out$estimates$m_deltas[[1]] , thresh, title = 'Proteomic network of stage I breast carcinoma patients')
   plot_graph(brca_dat_stageII, out$estimates$m_deltas[[2]],  thresh, title = 'Proteomic network of stage II breast carcinoma patients')
   plot_graph(brca_dat_stageIII, out$estimates$m_deltas[[3]], thresh, title = 'Proteomic network of stage III breast carcinoma patients')
   
+  save(out, file = 'SSLx_TCGA.RData')
   
+  return(list(out$estimates$m_deltas, thresh))
 }
 
 all_stages_SSL <- function(){
-  stage_example_SSL(brca_dat_stageI, 'SSL_stageI.RData')
-  stage_example_SSL(brca_dat_stageII, 'SSL_stageII.RData')
-  stage_example_SSL(brca_dat_stageIII, 'SSL_stageIII.RData')
-  
+  SSL_I <- stage_example_SSL(brca_dat_stageI, 'SSL_stageI.RData')
+  SSL_II <- stage_example_SSL(brca_dat_stageII, 'SSL_stageII.RData')
+  SSL_III <- stage_example_SSL(brca_dat_stageIII, 'SSL_stageIII.RData')
+  SSL_x <- TCGA_GMT()
+  save(SSL_I, file = "Genomic_application/data/SSL_stageI.RData")
+  save(SSL_II, file = "Genomic_application/data/SSL_stageII.RData")
+  save(SSL_III, file = "Genomic_application/data/SSL_stageIII.RData")
+  save(SSL_x, file = "Genomic_application/data/SSLx_TCGA.RData")
 }
 
