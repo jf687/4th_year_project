@@ -1,4 +1,4 @@
-rm(list=ls())
+#rm(list=ls())
 library(dplyr)
 # Download TCGA Breast Cancer proteomic data, and data on pathological tumour stage
 

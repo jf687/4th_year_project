@@ -15,6 +15,7 @@ A0 <- matrix(rbinom(P*P, 1, 0.03), nrow = P)
 A0[lower.tri(A0)] = t(A0)[lower.tri(A0)]
 diag(A0) <- 0
 print(sum(A0[upper.tri(A0)])/sum(upper.tri(A0)))
+print(A0)
 
 #
 # 3 edges become present over time; 1 becomes absent over time
@@ -63,8 +64,8 @@ par(mfrow = c(1,2))
 plot(out$debugs$vec_ELBO_CM, xlab = "iterations", ylab = "ELBOs at M-step")
 plot(unlist(out$debugs$list_ELBO), xlab = "iterations", ylab = "ELBOs")
 
-hist(out$estimates$mu_zeta[upper.tri(out$estimates$mu_zeta)], labels = T, xlab = "zeta", main = "")
-hist(out$estimates$mu_beta[upper.tri(out$estimates$mu_beta)], labels = T, xlab = "beta", main = "")
+hist(out$estimates$mu_zeta[upper.tri(out$estimates$mu_zeta)], labels = T, xlab = "(a) zeta", main = "")
+hist(out$estimates$mu_beta[upper.tri(out$estimates$mu_beta)], labels = T, xlab = "(b) beta", main = "")
 
 out$estimates$mu_beta[pos_id]
 out$estimates$mu_beta[neg_id]
