@@ -65,8 +65,10 @@ stage_example_SSL <- function(stage_data = brca_dat_stageIII, filename = 'SSL_st
   res.ssl <- GM(stage_data, list_hyper, list_init)
   #save(res.ssl, file = filename)
   plot_graph(stage_data, res.ssl$m_delta, thresh)
-  
-  return(list(res.ssl$m_delta,thresh))
+  browser()
+  nedges <- which(res.ssl$m_delta<thresh)
+  res.ssl$Omega[nedges]<- 0
+  return(list(PPI = res.ssl$m_delta, omega.opt = res.ssl$Omega, thresh =  thresh))
 }
 
 stage_example_GLasso <- function(stage_data = brca_dat_stageI, t = 0){
@@ -87,18 +89,22 @@ TCGA_GMT <- function(){
   
   Ys <- list(brca_dat_stageI, brca_dat_stageII, brca_dat_stageIII)
   
-  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 25)
-  t.vals <- seq(from = 0.01, to = 1, length.out = 100)
   
-  v0.selection <- select.v0.bic(stage_data, list_hyper, list_init, v0.vals,t.vals,n=140,p=131)
-  v0.selection$v0.opt
+  
+  v0.selection <- ave_v0()
   thresh <- v0.selection$t.opt
+  v0.opt <- v0.selection$v0.opt
   
   ts <- 1:length(Ys)
+  
   out <- gmt(Ys,
              ts,
              debug = T,
-             set_v0 = v0.selection$v0.opt)
+             set_v0 = v0.opt)
+  
+  nedges <- lapply(out$estimates$m_deltas, function(x) which(x<thresh))
+  omega_opts <- lapply(out$estimates$Omegas, function(x) x[nedges] <- 0)
+  
   
   plot_graph(brca_dat_stageI, out$estimates$m_deltas[[1]] , thresh, title = 'Proteomic network of stage I breast carcinoma patients')
   plot_graph(brca_dat_stageII, out$estimates$m_deltas[[2]],  thresh, title = 'Proteomic network of stage II breast carcinoma patients')
@@ -106,7 +112,7 @@ TCGA_GMT <- function(){
   
   save(out, file = 'SSLx_TCGA.RData')
   
-  return(list(out$estimates$m_deltas, thresh))
+  return(list(PPIs = out$estimates$m_deltas, omega_opts = omega_opts, thresh = thresh ))
 }
 
 all_stages_SSL <- function(){
@@ -120,3 +126,29 @@ all_stages_SSL <- function(){
   save(SSL_x, file = "Genomic_application/data/SSLx_TCGA.RData")
 }
 
+ave_v0 <- function(){
+  list_hyper <- list(lambda = 2,                   
+                     v0 = 0.2,                  
+                     v1 = 100,                   
+                     a = 2,                   
+                     b = 2,                   
+                     ar = 1,                   
+                     br = NULL)
+  list_init <- list(a_rho = 1,                  
+                    b_rho = 1,                  
+                    a_tau = 1,                  
+                    b_tau = 1)
+  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 25)
+  t.vals <- seq(from = 0.01, to = 1, length.out = 100)
+  
+  list_hyper$br = dim(brca_dat_stageI)[[2]]
+  v0I <- select.v0.bic(brca_dat_stageI, list_hyper, list_init, v0.vals,t.vals,n=140,p=dim(brca_dat_stageI)[[2]])
+  
+  list_hyper$br = dim(brca_dat_stageII)[[2]]
+  v0II <- select.v0.bic(brca_dat_stageII, list_hyper, list_init, v0.vals,t.vals,n=140,p=dim(brca_dat_stageII)[[2]])
+  
+  list_hyper$br = dim(brca_dat_stageIII)[[2]]
+  v0III <- select.v0.bic(brca_dat_stageIII, list_hyper, list_init, v0.vals,t.vals,n=140,p=dim(brca_dat_stageIII)[[2]])
+  
+  return(list(v0.opt = mean(list(v0I$v0.opt, v0II$v0.opt, v0III$v0.opt)), t.opt = mean(list(v0I$t.opt, v0II$t.opt, v0III$t.opt))))
+  }
