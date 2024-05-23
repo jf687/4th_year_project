@@ -529,7 +529,7 @@ df.plot = data.frame(partialcor = c(partialcors.i,partialcors.ii,partialcors.iii
 ind.include = abs(partialcors.i-partialcors.iii)>0.05 
 df.plot = df.plot[c(ind.include,ind.include,ind.include),]
 
-gg=ggplot2::ggplot(df.plot,aes(x=stage,y=partialcor, group=Edge)) + geom_line(aes(color=Edge))+geom_point()+theme_bw()+ylab('Partial correlation')+xlab('Tumour stage')+
+gg=ggplot2::ggplot(df.plot,aes(x=stage,y=partialcor, group=Edge)) + geom_line(aes(color=Edge))+geom_point(aes(color=Edge))+theme_bw()+ylab('Partial correlation')+xlab('Tumour stage')+
   geom_hline(yintercept=0, linetype='dashed', color='grey')
 
 pdf("Genomic_application/plots/TCGA_partialcor_change.pdf", 6, 4)
