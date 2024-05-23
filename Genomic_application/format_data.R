@@ -1,4 +1,4 @@
-#rm(list=ls())
+rm(list=ls())
 library(dplyr)
 # Download TCGA Breast Cancer proteomic data, and data on pathological tumour stage
 
@@ -58,6 +58,15 @@ dim(brca_dat_stageIII) # 140 x 131
 
 brca_dat = list(brca_dat_stageI,brca_dat_stageII, brca_dat_stageIII)
 brca_stages = c(1,2,3)
-save(brca_dat, brca_stages, file='Genomic_application/data/brca_dat_formatted.RData')
+
+# Map the names of the antibodies used to identify the proteins to the names of the genes that encode them
+# Use file showing which genes the proteins detected by the antibodies are encoded from (can be downloaded from TCGA website)
+protein.names = colnames(BRCA_download)
+rppa.to.gene = read.table("Genomic_application/data/RPPA_to_gene.txt", sep = "\t", stringsAsFactors = F)
+mapping.frame = data.frame(protein = protein.names,gene=rppa.to.gene[match(protein.names,rppa.to.gene[,1]),2])
+length(unique(mapping.frame$gene)) # 102 unique proteins
+
+# Save all data
+save(brca_dat, brca_stages, mapping.frame, file='Genomic_application/data/brca_dat_formatted.RData')
 
 
