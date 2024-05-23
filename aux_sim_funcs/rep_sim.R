@@ -12,7 +12,7 @@ source('~/4th_year_project/aux_method_funcs/GM/fun_GM.R')
 source('~/4th_year_project/aux_method_funcs/GM/fun_utils.R')
 source('~/4th_year_project/aux_method_funcs/GHS/GHS.R')
 
-##TEST MARK##
+
 list_hyper <- list(lambda = 2,                   
                    v0 = 0.5,                  
                    v1 = 100,                   
@@ -29,10 +29,10 @@ ns <- seq(from = 100, to = 400, length.out = 2)
 ps <- seq(from = 50, to = 100, length.out = 2)
 
 
-v0.vals <- seq(from = 0.01, to = 1.3, length.out = 20)
-t.vals <- seq(from = 0.01, to = 1, length.out = 100)
+v0.vals <- seq(from = 0.9, to = 1.9, length.out = 20)
+t.vals <- seq(from = 0.01, to = 1.5, length.out = 100)
 
-N <- 2
+N <- 50
 
 SSL.op <- list()
 SSL.runtimes <- list()
@@ -45,12 +45,12 @@ GHS.op <- list()
 GHS.runtimes <- list()
 
 SSL.bool <- T
-GLasso.bool <- T
+GLasso.bool <- F
 BGLasso.bool <- F
 GHS.bool <- F
 
-for(n in list(200)){
-  for(p in list(100)){
+for(n in list(100)){
+  for(p in list(50){
     if(n>p){
       
       cat('=========n:',n,'p:',p,'==========')

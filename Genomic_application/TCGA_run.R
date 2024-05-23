@@ -54,7 +54,7 @@ stage_example_SSL <- function(stage_data = brca_dat_stageIII, filename = 'SSL_st
                     b_rho = 1,                  
                     a_tau = 1,                  
                     b_tau = 1)
-  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 25)
+  v0.vals <- seq(from = 0.5, to = 2.5, length.out = 18)
   t.vals <- seq(from = 0.01, to = 1, length.out = 100)
   
   v0.selection <- select.v0.bic(stage_data, list_hyper, list_init, v0.vals,t.vals,n=140,p=131)
@@ -103,8 +103,14 @@ TCGA_GMT <- function(){
              set_v0 = v0.opt)
   
   nedges <- lapply(out$estimates$m_deltas, function(x) which(x<thresh))
-  omega_opts <- lapply(out$estimates$Omegas, function(x) x[nedges] <- 0)
+  browser()
+  for(net in ts){
+    out$estimates$Omegas[nedges[[net]]] <- 0
+  }
+  browser()
   
+  omega_opts <- list(out$estimates$Omegas[[1]], out$estimates$Omegas[[2]], out$estimates$Omegas[[3]])
+  browser()
   
   plot_graph(brca_dat_stageI, out$estimates$m_deltas[[1]] , thresh, title = 'Proteomic network of stage I breast carcinoma patients')
   plot_graph(brca_dat_stageII, out$estimates$m_deltas[[2]],  thresh, title = 'Proteomic network of stage II breast carcinoma patients')
@@ -149,6 +155,6 @@ ave_v0 <- function(){
   
   list_hyper$br = dim(brca_dat_stageIII)[[2]]
   v0III <- select.v0.bic(brca_dat_stageIII, list_hyper, list_init, v0.vals,t.vals,n=140,p=dim(brca_dat_stageIII)[[2]])
-  
-  return(list(v0.opt = mean(list(v0I$v0.opt, v0II$v0.opt, v0III$v0.opt)), t.opt = mean(list(v0I$t.opt, v0II$t.opt, v0III$t.opt))))
+  browser()
+  return(list(v0.opt = mean(v0I$v0.opt, v0II$v0.opt, v0III$v0.opt), t.opt = mean(v0I$t.opt, v0II$t.opt, v0III$t.opt)))
   }

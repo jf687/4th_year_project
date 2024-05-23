@@ -74,7 +74,7 @@ module load R/4.2.2
 # CMD="./myApplication arg1 arg2 arg3"
 
 # Or run R:
-CMD="Rscript Sims/runsim.R"
+CMD="Rscript Sims/TCGA_run.R"
 
 
 ###############################################################

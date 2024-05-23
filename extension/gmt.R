@@ -67,10 +67,10 @@ gmt <- function(Ys,
   list_hyper <- set_default(list_hyper, 'lambda', 2)
   if(list_hyper$lambda <= 0)stop("lambda must be positive.")
   
-  if(set_v0){
-    list_hyper <- set_default(list_hyper, 'v0', set_v0)
-  }else{
-  list_hyper <- set_default(list_hyper, 'v0', 0.1)}
+  
+  list_hyper <- set_default(list_hyper, 'v0', set_v0)
+  
+  #list_hyper <- set_default(list_hyper, 'v0', 0.1)}
   if(list_hyper$v0 <= 0)stop("v0 must be positive.")
   
   

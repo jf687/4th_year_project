@@ -15,15 +15,19 @@ GLasso_ROC_sim <- function(GLasso.sf, y){
   
   
   
-  n.lambda = 20 # Varying the penalty parameter to get different FDRs
+  n.lambda = 50 # Varying the penalty parameter to get different FDRs
   
   start.time <- Sys.time()
   res.glasso = huge(y, method = 'glasso', nlambda=n.lambda, verbose = F)
   end.time <- Sys.time()
   
-  sim.obj = huge.select(res.glasso, criterion = 'stars')
+  sim.obj = huge.select(res.glasso, criterion = 'stars', stars.thresh = 0.05)
   res.glasso.omega.opt = sim.obj$opt.icov
-
+  all.FPRs = list()
+  for(i in length(res.glasso$icov)){
+    TPRs[[i]] = TPR(theta.true!=0, res.glasso$icov!=0)
+    FPRs[[i]] = FPR(theta.true!=0, res.glasso$icov!=0)
+  }
 
   res$lambda = sim.obj$opt.lambda
   res$precision = precision(abs(omega.true)>1e-15, abs(res.glasso.omega.opt)>1e-15)
@@ -117,6 +121,7 @@ plot_ROC = function(sim.obj,  cutoff=NULL){
 }
 
 plot_GLasso_ROC = function(res){
+  # res needs to be result from glasso_roc_sim
   auc_value = res$auc_value
   perf = res$perf
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)

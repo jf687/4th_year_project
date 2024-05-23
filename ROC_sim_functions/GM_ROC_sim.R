@@ -172,7 +172,7 @@ plot_ssl_ROC <- function(res.ssl, v0){
   auc_value = res.ssl$auc_value
   perf = res.ssl$perf
   plot(perf, main = '', xlim = c(0, 1), ylim = c(0, 1), lwd = 2, colorize = TRUE)
-  title(main = paste('ROC plot using SSL method with data size n = 200, p = 100. '), sub = paste('$v_0 =$ ',v0, '$v1 =$', list_hyper$v1))
+  #title(main = paste('ROC plot using SSL method with data size n = 200, p = 100. '), sub = bquote(v[0] = v0 v[1] = list_hyper$v1)))
   abline(a= 0, b = 1, col = "gray80")
   #table(predictions,labels > 0.5)
 }
