@@ -12,9 +12,9 @@ reps <- 1
 
 # at the first time point
 #
-aucs <- c(c(),c(),c(),c(), c())
-precs <-  c(c(),c(),c(),c(), c())
-recs <-  c(c(),c(),c(),c(), c())
+aucs <- c()
+precs <-  c()
+recs <-  c()
 
 for(c in 1:reps){
   set.seed(c)

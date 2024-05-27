@@ -239,3 +239,52 @@ compute_pauc <- function(ppi, pat,  fpr_stop = 1, standardise = F) {
   return(pauc)
   
 }
+
+plot_multi_ROC <- function(){
+  n <- 200
+  p<- 100
+  y = mvtnorm::rmvnorm(n, rep(0, p), sf200_100$sigma)
+  y = scale(y)
+  res.ssl1 <- GM_ROC_sim(sf200_100, y,  list_hyper, list_init, v0.vals, t.vals )
+  
+  p <- 150
+  y = mvtnorm::rmvnorm(n, rep(0, p), sf200_150$sigma)
+  y = scale(y)
+  res.ssl2 <- GM_ROC_sim(sf200_150, y,  list_hyper, list_init, v0.vals, t.vals )
+  
+  p <- 200
+  y = mvtnorm::rmvnorm(n, rep(0, p), sf200_200$sigma)
+  y = scale(y)
+  res.ssl3 <- GM_ROC_sim(sf200_200, y,  list_hyper, list_init, v0.vals, t.vals )
+
+  # Extract x and y values from each performance object
+  x1 <- res.ssl1$perf@x.values[[1]]
+  y1 <- res.ssl1$perf@y.values[[1]]
+  
+  x2 <- res.ssl3$perf@x.values[[1]]
+  y2 <- res.ssl3$perf@y.values[[1]]
+  
+  x3 <- res.ssl2$perf@x.values[[1]]
+  y3 <- res.ssl2$perf@y.values[[1]]
+  
+  # Combine the data into a single data frame
+  perf_data <- data.frame(
+    x = c(x1, x2, x3),
+    y = c(y1, y2, y3),
+    group = factor(rep(c("p = 100", "p = 150", "p = 200"), 
+                       times = c(length(x1), length(x2), length(x3))))
+  )
+  
+  # Plot using ggplot2
+  ggplot(perf_data, aes(x = x, y = y, color = group)) +
+    geom_line(size = 1) +
+    labs(title = "", x = "False Positive Rate", y = "True Positive Rate", color = "Dataset (n=200)") +
+    xlim(0, 1) +
+    ylim(0, 1) +
+    theme_minimal() +
+    theme(legend.position = "right")
+  
+  abline(a= 0, b = 1, col = "gray80")
+  
+  
+}
